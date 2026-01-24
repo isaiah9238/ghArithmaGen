@@ -1,4 +1,4 @@
-nodes_modules/
+node_modules/
 .DS_Store
 firebase-debug.log
 .env
