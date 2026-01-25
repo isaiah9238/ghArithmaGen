@@ -1,24 +1,34 @@
-# ghArithmaGen
-For app hosting 
-# Basic Site Starter
+# ArithmaGen Engine
+**Professional Mathematics & Engineering Visualizer**
 
-Files:
-- `index.html` â€” main page
-- `styles.css` â€” simple responsive styles
-- `script.js` â€” small JS for nav + demo form
-- `favicon.ico` â€” optional favicon (create or replace)
+### Project Overview
+ArithmaGen is a modular graphing engine designed to bridge the gap between theoretical physics and practical land surveying. This repository hosts the **Arithma-Sketch** micro-app, a "workable" prototype demonstrating real-time coordinate tracking and manual input drivers.
 
-How to use
-1. Save the files in a folder (e.g., `basic-site/`).
-2. Open `index.html` in a browser to view.
-3. To deploy:
-   - Drop files on any static host (Netlify, Vercel, Surge, Firebase Hosting).
-   - Or push to a GitHub repo and enable GitHub Pages from the repository settings (use `main` branch / `docs` folder or `gh-pages` branch).
+---
 
-Customize
-- Edit colors and layout in `styles.css`.
-- Replace hero / content in `index.html`.
-- Hook the contact form to a server or service (Formspree, Netlify Forms, or your API).
+### Core Files
+* **index.html** — The Arithma-Sketch terminal interface.
+* **styles.css** — **Golden Earth** high-contrast dark theme.
+* **script.js** — Core plotting engine and manual input logic.
 
-Want anything added?
-- Multiple pages, SSG pipeline, React/Vite template, Tailwind CSS, or GitHub Actions for deployment â€” tell me which and Iâ€™ll provide the files.
+---
+
+### Current Features
+* **Manual Input Mode**: Use arrow keys to simulate "knob" controls for drawing on the grid.
+* **Real-time Coordinate Tracking**: Active monitoring of X and Y positions relative to the origin.
+* **Offset Monitoring**: Integrated card trackers ready to monitor distances between surveying lines.
+
+---
+
+### Surveying Standards (Pennsylvania)
+The engine is being optimized for **PA Surveying Standards**, supporting:
+* **Quadrant Bearings**: Inputting directions like `N 45-30-22 E`.
+* **Offset Distances**: Calculating parallel right-of-way lines and property boundaries.
+
+---
+
+### How to use
+1. Open the repository link in your browser.
+2. Use **Arrow Keys** to move the pen.
+3. Use the **Spacebar** to "Shake" (clear) the canvas.
+4. Monitor the sidebar for precision coordinate feedback.
