@@ -14,9 +14,13 @@ let x = canvas.width / 2;
 let y = canvas.height / 2;
 let isDrawing = false;
 
-// Function to update the tracker
+// This makes the tracker show Y as "Up" from the bottom, not "Down" from the top
 function updateDisplay(curX, curY) {
-    posDisplay.innerText = `X: ${(curX/100).toFixed(2)}, Y: ${((canvas.height-curY)/100).toFixed(2)}`;
+    const surveyX = (curX / 100).toFixed(2);
+    // Subtracting from canvas.height flips the math so the bottom is 0
+    const surveyY = ((canvas.height - curY) / 100).toFixed(2); 
+    
+    posDisplay.innerText = `X: ${surveyX}, Y: ${surveyY}`;
 }
 
 // THE ENGINE: KEYBOARD LOGIC
