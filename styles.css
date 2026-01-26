@@ -88,14 +88,19 @@ body {
 }
 
 #sidebar {
-  width: 260px;
-  background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+    width: 250px;
+    background-color: #2b2b2b;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-right: 2px solid #f3e2a0;
+    
+    /* ADD THESE 2 LINES HERE: */
+    overflow-y: auto; 
+    max-height: 100vh;
 }
+
 
 h1 {
   color: var(--accent-gold);
