@@ -1,6 +1,3 @@
-// ==========================================
-// 1. SETUP & REALITY LINK
-// ==========================================
 const canvas = document.getElementById('sketchCanvas');
 const ctx = canvas.getContext('2d');
 const posDisplay = document.getElementById('pos-display');
