@@ -219,6 +219,29 @@ window.addEventListener('keydown', (e) => {
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
     if (keys.includes(e.key)) e.preventDefault(); 
 
+    // --- NEW: UNDO (Ctrl + Z) ---
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        
+        // Scenario 1: Undo last step of current line
+        if (currentStroke.length > 1) {
+            currentStroke.pop(); 
+            const prev = currentStroke[currentStroke.length - 1];
+            pen.x = prev.x;
+            pen.y = prev.y;
+        }
+        // Scenario 2: Undo a finished line (bring it back to life)
+        else if (history.length > 0) {
+            currentStroke = history.pop(); 
+            const prev = currentStroke[currentStroke.length - 1];
+            pen.x = prev.x;
+            pen.y = prev.y;
+        }
+        render();
+        return; 
+    }
+
+    // --- DRAWING LOGIC ---
     const step = 1; 
     let dx = 0, dy = 0;
 
@@ -233,12 +256,14 @@ window.addEventListener('keydown', (e) => {
         render();
     }
     
+    // --- LIFT PEN (Space) ---
     if (e.key === ' ') {
         if (currentStroke.length > 0) history.push([...currentStroke]);
         currentStroke = [{ ...pen }];
         render();
     }
 });
+
 
 // B. CURVE TOOL
 btnCurve.onclick = () => {
