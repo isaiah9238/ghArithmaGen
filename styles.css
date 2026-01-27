@@ -15,22 +15,36 @@ body {
   overflow: hidden;
 }
 
+/* --- UPDATED SIDEBAR (Compact Mode) --- */
 aside {
-  width: 200px;
+  width: 210px;       /* Slightly wider to fit text */
   background: var(--panel-color);
   border-right: 1px solid #333;
-  padding: 1rem;
+  padding: 8px;       /* Reduced from 1rem to save space */
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 8px;           /* Reduced gap between cards */
   z-index: 10;
+  overflow-y: auto;   /* IMPORTANT: Adds scrollbar if screen is too short */
 }
 
+/* --- NEW TITLE STYLE --- */
+aside h1 {
+  margin: 0 0 5px 0;  /* Moves title to the very top */
+  font-size: 1.1rem;  /* Smaller font to save space */
+  text-align: center;
+  color: var(--gold);
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
+
+/* --- UPDATED CARD STYLE --- */
 .card {
   background: #252525;
-  padding: 10px;
+  padding: 8px;       /* Tighter padding inside boxes */
   border: 1px solid #333;
   border-radius: 4px;
+  font-size: 0.9rem;  /* Slightly smaller text */
 }
 
 input {
@@ -42,6 +56,12 @@ input {
     box-sizing: border-box;
 }
 
+select {
+    width: 100%; /* Ensures dropdowns fit the box */
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
 .action-btn {
     width: 100%;
     background: #d99e33;
@@ -50,6 +70,7 @@ input {
     font-weight: bold;
     cursor: pointer;
     margin-top: 5px;
+    border-radius: 4px;
 }
 
 .reset-btn {
@@ -59,6 +80,7 @@ input {
     border: 1px solid #666;
     padding: 8px;
     cursor: pointer;
+    border-radius: 4px;
 }
 
 #canvas-container {
