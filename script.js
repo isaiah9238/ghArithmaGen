@@ -5,9 +5,9 @@ const canvas = document.getElementById('sketchCanvas');
 const ctx = canvas.getContext('2d');
 const inputX = document.getElementById('input-x');
 const inputY = document.getElementById('input-y');
-const inputScale = document.getElementById('input-scale'); // NEW: Zoom Control
+const inputScale = document.getElementById('input-scale'); 
 const btnGo = document.getElementById('btn-go');
-const btnRecenter = document.getElementById('btn-recenter'); // NEW: Reset Button
+const btnRecenter = document.getElementById('btn-recenter'); 
 const offsetDisplay = document.getElementById('offset-display');
 
 // FIX: Matches drawing resolution to your actual screen size
@@ -34,7 +34,6 @@ ctx.moveTo(x, y);
 // 3. THE MATH ENGINE
 // ==========================================
 function getScale() {
-    // defaults to 5 pixels per foot if box is empty
     return parseFloat(inputScale.value) || 5; 
 }
 
@@ -57,8 +56,33 @@ function updateDisplay(curX, curY) {
 }
 
 // ==========================================
-// 4. MANUAL INPUTS & ZOOM
+// 4. MOUSE & CLICK CONTROLS
 // ==========================================
+
+// FEATURE: Shift + Click to move the Origin (0,0)
+canvas.addEventListener('mousedown', (e) => {
+    if (e.shiftKey) {
+        // Clear screen for the new setup
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Set new 0,0 to where you clicked
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        
+        // Reset Pen
+        x = startX;
+        y = startY;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        updateDisplay(x, y);
+        
+        // Visual confirmation (Tiny flash)
+        canvas.style.opacity = 0.5;
+        setTimeout(() => canvas.style.opacity = 1, 100);
+    }
+});
+
 // "GO" Button Logic
 btnGo.addEventListener('click', () => {
     const currentScale = getScale();
@@ -77,7 +101,6 @@ btnGo.addEventListener('click', () => {
 
 // "Recenter" Button Logic
 btnRecenter.addEventListener('click', () => {
-    // Wipes screen and puts 0,0 back in the middle
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     startX = canvas.width / 2;
     startY = canvas.height / 2;
@@ -89,9 +112,8 @@ btnRecenter.addEventListener('click', () => {
     canvas.focus();
 });
 
-// Redraw if Zoom Changes (Optional: clear screen to prevent distortion)
+// Redraw if Zoom Changes
 inputScale.addEventListener('change', () => {
-    // For now, we just update the display math, we don't redraw the lines
     updateDisplay(x, y);
     canvas.focus();
 });
@@ -104,7 +126,7 @@ window.addEventListener('keydown', (e) => {
     if (keys.includes(e.key)) e.preventDefault(); 
 
     const currentScale = getScale();
-    const step = currentScale; // Move 1 foot per tap (scaled)
+    const step = currentScale; 
     const isOrtho = e.shiftKey; 
 
     // --- MOVEMENT ENGINE ---
@@ -127,14 +149,17 @@ window.addEventListener('keydown', (e) => {
     
     // --- RESET (Spacebar) ---
     if (e.key === ' ') {
-        btnRecenter.click(); // Uses the same logic as the button
+        // Just clear ink, keep origin
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        x = startX; y = startY;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        updateDisplay(x, y);
         return;
     }
 
     // --- SUMMONERS ---
     if (e.key.toLowerCase() === 'c') {
         ctx.beginPath();
-        // Circle radius = 5 feet * scale
         ctx.arc(x, y, 5 * currentScale, 0, Math.PI * 2); 
         ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x, y);
@@ -142,7 +167,6 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (e.key.toLowerCase() === 'r') {
-        // 40x20 box
         let w = 40 * currentScale;
         let h = 20 * currentScale;
         ctx.strokeRect(x - (w/2), y - (h/2), w, h);
@@ -165,7 +189,6 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
-    // Draw the line
     ctx.lineTo(x, y);
     ctx.stroke();
     updateDisplay(x, y);
