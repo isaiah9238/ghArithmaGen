@@ -13,8 +13,12 @@
       <p>Use Arrow Keys to Draw<br>Space to Shake (Clear)</p>
       
       <div class="card">
-        <strong>Position Tracker</strong>
-        <div id="pos-display">X: 0.00, Y: 0.00</div>
+        <strong>Position (ft)</strong>
+        <div style="display: flex; gap: 5px; align-items: center;">
+            <input type="number" id="input-x" value="0.00" step="1.00" style="width: 60px; padding: 4px;">
+            <input type="number" id="input-y" value="0.00" step="1.00" style="width: 60px; padding: 4px;">
+            <button id="btn-go" style="cursor: pointer; background: #d99e33; border: none; padding: 5px 10px; font-weight: bold;">GO</button>
+        </div>
       </div>
       
       <div class="card">
