@@ -1,220 +1,223 @@
 // ==========================================
-// 1. SETUP & REALITY LINK
+// 1. THE DATABASE (Vector Storage)
+// ==========================================
+// We store "strokes" instead of pixels. 
+// Each stroke is a list of points: [{x, y}, {x, y}...]
+let history = []; 
+let currentStroke = []; // The line you are currently drawing
+
+// ==========================================
+// 2. THE CAMERA (Viewport)
+// ==========================================
+let camera = {
+    x: 0, // World X at center of screen
+    y: 0, // World Y at center of screen
+    zoom: 5 // Pixels per Foot (Scale)
+};
+
+// ==========================================
+// 3. SETUP & HTML LINKS
 // ==========================================
 const canvas = document.getElementById('sketchCanvas');
 const ctx = canvas.getContext('2d');
 const inputX = document.getElementById('input-x');
 const inputY = document.getElementById('input-y');
-const inputScale = document.getElementById('input-scale'); 
+const inputScale = document.getElementById('input-scale');
 const btnGo = document.getElementById('btn-go');
-const btnRecenter = document.getElementById('btn-recenter'); 
+const btnRecenter = document.getElementById('btn-recenter');
 const offsetDisplay = document.getElementById('offset-display');
 
-// FIX: Matches drawing resolution to your actual screen size
-canvas.width = canvas.offsetWidth;
-canvas.height = canvas.offsetHeight;
-
-// STYLING: The "Golden Earth" Pen
-ctx.strokeStyle = '#f3e2a0'; 
-ctx.lineWidth = 2;
-
-// ==========================================
-// 2. THE ORIGIN (Surveyor's 0,0)
-// ==========================================
-let startX = canvas.width / 2;
-let startY = canvas.height / 2;
-let x = startX;
-let y = startY;
-
-// Initialize
-ctx.beginPath();
-ctx.moveTo(x, y);
-
-// ==========================================
-// 3. THE MATH ENGINE
-// ==========================================
-function getScale() {
-    return parseFloat(inputScale.value) || 5; 
+// Set canvas to full screen resolution
+function resizeCanvas() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    render(); // Redraw immediately on resize
 }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); // Init
 
-function updateDisplay(curX, curY) {
-    const currentScale = getScale();
-
-    // 1. Calculate Real World Coordinates
-    const displayX = ((curX - startX) / currentScale).toFixed(2);
-    const displayY = ((startY - curY) / currentScale).toFixed(2); 
-    
-    // 2. Update Input Boxes
-    inputX.value = displayX;
-    inputY.value = displayY;
-
-    // 3. Offset Monitor
-    const dx = curX - startX;
-    const dy = curY - startY;
-    const distance = Math.sqrt(dx * dx + dy * dy); 
-    offsetDisplay.innerText = `Offset: ${(distance / currentScale).toFixed(2)} ft`;
-}
+// STYLING
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
 
 // ==========================================
-// 4. MOUSE & CLICK CONTROLS
+// 4. THE PEN (World Coordinates)
 // ==========================================
+// The pen exists in "World Space" (Feet), not "Screen Space" (Pixels)
+let pen = { x: 0, y: 0 }; 
 
-// FEATURE: Shift + Click to move the Origin (0,0)
-canvas.addEventListener('mousedown', (e) => {
-    if (e.shiftKey) {
-        // Clear screen for the new setup
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Set new 0,0 to where you clicked
-        const rect = canvas.getBoundingClientRect();
-        startX = e.clientX - rect.left;
-        startY = e.clientY - rect.top;
-        
-        // Reset Pen
-        x = startX;
-        y = startY;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        updateDisplay(x, y);
-        
-        // Visual confirmation (Tiny flash)
-        canvas.style.opacity = 0.5;
-        setTimeout(() => canvas.style.opacity = 1, 100);
-    }
-});
+// Start a new stroke at 0,0
+currentStroke.push({ ...pen });
 
-// "GO" Button Logic
-btnGo.addEventListener('click', () => {
-    const currentScale = getScale();
-    const targetX = parseFloat(inputX.value);
-    const targetY = parseFloat(inputY.value);
-
-    // Convert Real World Feet back to Pixels
-    x = startX + (targetX * currentScale);
-    y = startY - (targetY * currentScale);
-
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    updateDisplay(x, y);
-    canvas.focus(); 
-});
-
-// "Recenter" Button Logic
-btnRecenter.addEventListener('click', () => {
+// ==========================================
+// 5. THE RENDER ENGINE (The "View Port")
+// ==========================================
+function render() {
+    // A. Clear the "Screen" (Glass)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    startX = canvas.width / 2;
-    startY = canvas.height / 2;
-    x = startX;
-    y = startY;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    updateDisplay(x, y);
-    canvas.focus();
-});
+    
+    // B. Sync Inputs
+    inputScale.value = camera.zoom;
+    inputX.value = pen.x.toFixed(2);
+    inputY.value = pen.y.toFixed(2); // Inverted Y logic handled in display
+    
+    // C. Calculate Offset Monitor
+    const dist = Math.sqrt(pen.x**2 + pen.y**2);
+    offsetDisplay.innerText = `Offset: ${dist.toFixed(2)} ft`;
 
-// Redraw if Zoom Changes
-inputScale.addEventListener('change', () => {
-    updateDisplay(x, y);
-    canvas.focus();
-});
+    // D. Math: Convert World(ft) -> Screen(px)
+    // ScreenX = (WorldX - CameraX) * Zoom + ScreenCenterX
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    const toScreen = (x, y) => ({
+        x: (x - camera.x) * camera.zoom + cx,
+        y: (camera.y - y) * camera.zoom + cy // Flip Y for surveying (Up is +)
+    });
+
+    // E. Draw History (The "Old" Lines)
+    ctx.strokeStyle = '#f3e2a0'; // Gold
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    // Draw all saved strokes
+    [...history, currentStroke].forEach(stroke => {
+        if (stroke.length < 2) return;
+        const start = toScreen(stroke[0].x, stroke[0].y);
+        ctx.moveTo(start.x, start.y);
+        
+        for (let i = 1; i < stroke.length; i++) {
+            const pt = toScreen(stroke[i].x, stroke[i].y);
+            ctx.lineTo(pt.x, pt.y);
+        }
+    });
+    ctx.stroke();
+
+    // F. Draw the "Crosshair" (Pen Position)
+    const p = toScreen(pen.x, pen.y);
+    ctx.strokeStyle = '#d99e33'; // Orange
+    ctx.fillStyle = '#d99e33';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Grid Axis Lines (Optional, helps orientation)
+    ctx.strokeStyle = '#3d340a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const origin = toScreen(0,0);
+    // X Axis
+    ctx.moveTo(0, origin.y); ctx.lineTo(canvas.width, origin.y);
+    // Y Axis
+    ctx.moveTo(origin.x, 0); ctx.lineTo(origin.x, canvas.height);
+    ctx.stroke();
+}
 
 // ==========================================
-// 5. KEYBOARD CONTROLS
+// 6. CONTROLS: PAN & ZOOM (Mouse)
+// ==========================================
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+
+canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastMouse = { x: e.clientX, y: e.clientY };
+    canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mouseup', () => {
+    isDragging = false;
+    canvas.style.cursor = 'default';
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    
+    // Calculate drag distance in pixels
+    const dxPx = e.clientX - lastMouse.x;
+    const dyPx = e.clientY - lastMouse.y;
+    
+    // Convert to World Feet (Reverse scale)
+    // Dragging RIGHT moves camera LEFT (Standard Pan logic)
+    camera.x -= dxPx / camera.zoom;
+    camera.y += dyPx / camera.zoom; // Y flip
+    
+    lastMouse = { x: e.clientX, y: e.clientY };
+    render();
+});
+
+// Zoom Wheel
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomSpeed = 0.5;
+    if (e.deltaY < 0) camera.zoom += zoomSpeed; // Zoom In
+    else camera.zoom = Math.max(1, camera.zoom - zoomSpeed); // Zoom Out
+    render();
+}, { passive: false });
+
+// ==========================================
+// 7. CONTROLS: DRAWING (Keyboard)
 // ==========================================
 window.addEventListener('keydown', (e) => {
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'c', 'C', 'r', 'R', 'b', 'B'];
     if (keys.includes(e.key)) e.preventDefault(); 
 
-    const currentScale = getScale();
-    const step = currentScale; 
+    const step = 1; // 1 Foot per tap (Logic is strictly feet now)
     const isOrtho = e.shiftKey; 
 
-    // --- MOVEMENT ENGINE ---
-    if (e.key === 'ArrowUp') {
-        y -= step;
-        if (isOrtho) x = x; 
-    }
-    if (e.key === 'ArrowDown') {
-        y += step;
-        if (isOrtho) x = x; 
-    }
-    if (e.key === 'ArrowLeft') {
-        x -= step;
-        if (isOrtho) y = y; 
-    }
-    if (e.key === 'ArrowRight') {
-        x += step;
-        if (isOrtho) y = y; 
+    let dx = 0; 
+    let dy = 0;
+
+    if (e.key === 'ArrowUp') dy = step;
+    if (e.key === 'ArrowDown') dy = -step;
+    if (e.key === 'ArrowLeft') dx = -step;
+    if (e.key === 'ArrowRight') dx = step;
+
+    // Apply Move
+    if (dx !== 0 || dy !== 0) {
+        if (isOrtho) {
+            // Straight Edge Logic would go here, simpler for now to just move
+        }
+        pen.x += dx;
+        pen.y += dy;
+        currentStroke.push({ ...pen }); // Save point
+        
+        // Auto-Follow: If pen goes off screen, move camera?
+        // For now, let's keep camera manual so it feels like CAD
+        render();
     }
     
     // --- RESET (Spacebar) ---
     if (e.key === ' ') {
-        // Just clear ink, keep origin
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        x = startX; y = startY;
-        ctx.beginPath(); ctx.moveTo(x, y);
-        updateDisplay(x, y);
-        return;
-    }
-
-    // --- SUMMONERS ---
-    if (e.key.toLowerCase() === 'c') {
-        ctx.beginPath();
-        ctx.arc(x, y, 5 * currentScale, 0, Math.PI * 2); 
-        ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x, y);
-        return;
-    }
-
-    if (e.key.toLowerCase() === 'r') {
-        let w = 40 * currentScale;
-        let h = 20 * currentScale;
-        ctx.strokeRect(x - (w/2), y - (h/2), w, h);
-        ctx.beginPath(); ctx.moveTo(x, y);
-        return;
-    }
-
-    if (e.key.toLowerCase() === 'b') {
-        let w = 40 * currentScale;
-        let h = 20 * currentScale;
-        let r = 2 * currentScale;
-        ctx.beginPath();
-        if (ctx.roundRect) {
-            ctx.roundRect(x - (w/2), y - (h/2), w, h, r);
-            ctx.stroke();
-        } else {
-            ctx.strokeRect(x - (w/2), y - (h/2), w, h);
+        // "Lift Pen" - Start a new separate line
+        if (currentStroke.length > 1) {
+            history.push([...currentStroke]);
         }
-        ctx.beginPath(); ctx.moveTo(x, y);
-        return;
+        currentStroke = [{...pen}]; // Start new line at current spot
+        // If you want to CLEAR ALL, uncomment these:
+        // history = [];
+        // currentStroke = [{x:0, y:0}];
+        // pen = {x:0, y:0};
+        render();
     }
-
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    updateDisplay(x, y);
+    
+    // --- Manual Coordinates (GO Button) ---
+    btnGo.onclick = () => {
+        pen.x = parseFloat(inputX.value);
+        pen.y = parseFloat(inputY.value);
+        currentStroke.push({ ...pen });
+        render();
+        canvas.focus();
+    };
+    
+    // --- Recenter Button ---
+    btnRecenter.onclick = () => {
+        camera.x = pen.x; // Center view on the PEN, not 0,0
+        camera.y = pen.y;
+        render();
+        canvas.focus();
+    };
 });
 
-// ==========================================
-// 6. TOUCH CONTROLS
-// ==========================================
-canvas.addEventListener('touchstart', (e) => {
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    x = touch.clientX - rect.left;
-    y = touch.clientY - rect.top;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    e.preventDefault();
-}, { passive: false });
-
-canvas.addEventListener('touchmove', (e) => {
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    x = touch.clientX - rect.left;
-    y = touch.clientY - rect.top;
-    
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    updateDisplay(x, y);
-    e.preventDefault();
-}, { passive: false });
+// Initial Render
+render();
