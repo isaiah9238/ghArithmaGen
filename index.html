@@ -3,55 +3,52 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ArithmaGen | Arithma-Sketch</title>
+    <title>ArithmaGen | Dual-View Console</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
 
     <aside id="sidebar">
       <h1>Arithma-Sketch</h1>
-      <p>Use Arrow Keys to Draw<br>Space to Shake (Clear)</p>
+      <p style="color:#888; font-size: 0.8rem;">Dual-View Vector Engine</p>
       
-            <div class="card">
-        <strong>Navigation & Scale</strong>
-        
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 8px;">
-            <label style="font-size: 0.8rem; color: #a3956a;">X:</label>
-            <input type="number" id="input-x" value="0.00" step="1.00" style="width: 50px; padding: 4px;">
-            <label style="font-size: 0.8rem; color: #a3956a;">Y:</label>
-            <input type="number" id="input-y" value="0.00" step="1.00" style="width: 50px; padding: 4px;">
-            <button id="btn-go" style="cursor: pointer; background: #d99e33; border: none; padding: 5px 10px; font-weight: bold; border-radius: 4px;">GO</button>
+      <div class="card">
+        <strong>Position (ft)</strong>
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+            <label>X:</label>
+            <input type="number" id="input-x" value="0.00" style="width: 50px;">
+            <label>Y:</label>
+            <input type="number" id="input-y" value="0.00" style="width: 50px;">
         </div>
-
-        <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
-             <div style="display: flex; align-items: center; gap: 5px;">
-                <label style="font-size: 0.8rem; color: #a3956a;">Zoom:</label>
-                <input type="number" id="input-scale" value="5" step="1" style="width: 40px; padding: 4px;"> 
-             </div>
-             <button id="btn-recenter" style="cursor: pointer; background: #2d2500; color: #f3e2a0; border: 1px solid #f3e2a0; padding: 4px 8px; font-size: 0.7rem; border-radius: 4px;">Recenter (0,0)</button>
-        </div>
+        <button id="btn-go" class="action-btn">GO TO POINT</button>
       </div>
       
       <div class="card">
         <strong>Offset Monitor</strong>
-        <div id="offset-display">Offset: 0.00 ft</div>
+        <div id="offset-display" style="font-size: 1.2rem; color: #f3e2a0;">0.00 ft</div>
       </div>
 
+      <button id="btn-recenter" class="reset-btn">RESET VIEWS (0,0)</button>
+
       <div class="card help-card">
-        <strong>Controls</strong>
-        <ul style="font-size: 0.8rem; padding-left: 1.2rem; margin: 5px 0;">
-          <li><strong>Arrows:</strong> Draw</li>
-          <li><strong>Shift:</strong> Straight Edge</li>
-          <li><strong>Space:</strong> Clear/Reset</li>
-          <li><strong>C:</strong> Stake (Circle)</li>
-          <li><strong>R:</strong> Box (Sharp)</li>
-          <li><strong>B:</strong> Pad (Rounded)</li>
+        <strong>Viewports (Locked)</strong>
+        <ul>
+            <li><strong>Left:</strong> Site Plan (Zoom 2)</li>
+            <li><strong>Right:</strong> Detail (Zoom 10)</li>
         </ul>
       </div>
     </aside>
 
-    <main id="canvas-container">
-      <canvas id="sketchCanvas"></canvas>
+    <main id="split-container">
+        <div class="view-wrapper">
+            <div class="view-label">SITE PLAN (1:2)</div>
+            <canvas id="canvasSite"></canvas>
+        </div>
+        
+        <div class="view-wrapper">
+            <div class="view-label">WORK ZONE (1:10)</div>
+            <canvas id="canvasWork"></canvas>
+        </div>
     </main>
 
     <script src="script.js"></script>
