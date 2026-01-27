@@ -1,99 +1,112 @@
 // ==========================================
-// 1. THE DATABASE (Vector Storage)
+// 1. DUAL CANVASES SETUP
+// ==========================================
+const siteCanvas = document.getElementById('canvasSite');
+const workCanvas = document.getElementById('canvasWork');
+const ctxSite = siteCanvas.getContext('2d');
+const ctxWork = workCanvas.getContext('2d');
+
+const inputX = document.getElementById('input-x');
+const inputY = document.getElementById('input-y');
+const btnGo = document.getElementById('btn-go');
+const btnRecenter = document.getElementById('btn-recenter');
+const offsetDisplay = document.getElementById('offset-display');
+
+// ==========================================
+// 2. THE DATABASE (Vector Storage)
 // ==========================================
 let history = []; 
 let currentStroke = []; 
 let pen = { x: 0, y: 0 }; 
 
 // ==========================================
-// 2. THE CAMERA (Viewport)
+// 3. THE CAMERAS (Two Viewports)
 // ==========================================
+// We share X/Y (Center) but have different ZOOM levels
 let camera = {
-    x: 0, // World X at center of screen
-    y: 0, // World Y at center of screen
-    zoom: 5 // Pixels per Foot (Scale)
+    x: 0, // World X at center
+    y: 0  // World Y at center
 };
 
-// ==========================================
-// 3. SETUP & HTML LINKS
-// ==========================================
-const canvas = document.getElementById('sketchCanvas');
-const ctx = canvas.getContext('2d');
-const inputX = document.getElementById('input-x');
-const inputY = document.getElementById('input-y');
-const inputScale = document.getElementById('input-scale');
-const btnGo = document.getElementById('btn-go');
-const btnRecenter = document.getElementById('btn-recenter');
-const offsetDisplay = document.getElementById('offset-display');
+// CONSTANT ZOOM SETTINGS (Locked)
+const ZOOM_SITE = 2;  // Viewport 1 Scale
+const ZOOM_WORK = 10; // Viewport 2 Scale
 
-function resizeCanvas() {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    render(); 
+// ==========================================
+// 4. RESIZE & RENDER LOOP
+// ==========================================
+function resize() {
+    siteCanvas.width = siteCanvas.offsetWidth;
+    siteCanvas.height = siteCanvas.offsetHeight;
+    workCanvas.width = workCanvas.offsetWidth;
+    workCanvas.height = workCanvas.offsetHeight;
+    renderAll();
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas(); 
+window.addEventListener('resize', resize);
+// Setup styling
+[ctxSite, ctxWork].forEach(ctx => {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+});
 
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-
-// Start a new stroke at 0,0
+// Start Stroke
 currentStroke.push({ ...pen });
 
 // ==========================================
-// 4. THE RENDER ENGINE (The "View Port")
+// 5. THE DUAL RENDERER
 // ==========================================
-function render() {
-    // A. Clear Screen
+function renderAll() {
+    // Render Left Screen (Site Plan)
+    renderView(ctxSite, siteCanvas, ZOOM_SITE);
+    // Render Right Screen (Detail Work)
+    renderView(ctxWork, workCanvas, ZOOM_WORK);
+    
+    // Update Sidebar Data
+    inputX.value = pen.x.toFixed(2);
+    inputY.value = pen.y.toFixed(2);
+    const dist = Math.sqrt(pen.x**2 + pen.y**2);
+    offsetDisplay.innerText = `${dist.toFixed(2)} ft`;
+}
+
+// The Core Drawing Function (Reused for both screens)
+function renderView(ctx, canvas, zoom) {
+    // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // B. Sync Inputs
-    inputScale.value = camera.zoom.toFixed(1);
-    inputX.value = pen.x.toFixed(2);
-    inputY.value = pen.y.toFixed(2); 
-    
-    // C. Offset Monitor
-    const dist = Math.sqrt(pen.x**2 + pen.y**2);
-    offsetDisplay.innerText = `Offset: ${dist.toFixed(2)} ft`;
-
-    // D. Math Helper: World(ft) -> Screen(px)
+    // Math Helper: World -> Screen
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
-
+    
+    // Transform Function
     const toScreen = (x, y) => ({
-        x: (x - camera.x) * camera.zoom + cx,
-        y: (camera.y - y) * camera.zoom + cy 
+        x: (x - camera.x) * zoom + cx,
+        y: (camera.y - y) * zoom + cy 
     });
 
-    // --- VISUAL AID: THE ORIGIN (0,0) ---
+    // A. Draw Grid / Origin
     const origin = toScreen(0,0);
-    
-    // 1. The Axis Lines (Crosshairs)
-    ctx.strokeStyle = '#3d340a'; // Dark Gold
+    ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    // Horizontal Axis
+    // Axis Lines
     ctx.moveTo(0, origin.y); ctx.lineTo(canvas.width, origin.y);
-    // Vertical Axis
     ctx.moveTo(origin.x, 0); ctx.lineTo(origin.x, canvas.height);
     ctx.stroke();
 
-    // 2. The Red Target Dot (So you can find it)
+    // Red Origin Dot
     ctx.fillStyle = '#ff3333';
     ctx.beginPath();
     ctx.arc(origin.x, origin.y, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // --- DRAWING HISTORY ---
-    ctx.strokeStyle = '#f3e2a0'; // Bright Gold Ink
+    // B. Draw Ink History
+    ctx.strokeStyle = '#f3e2a0'; // Gold
     ctx.lineWidth = 2;
     ctx.beginPath();
-    
     [...history, currentStroke].forEach(stroke => {
         if (stroke.length < 2) return;
         const start = toScreen(stroke[0].x, stroke[0].y);
         ctx.moveTo(start.x, start.y);
-        
         for (let i = 1; i < stroke.length; i++) {
             const pt = toScreen(stroke[i].x, stroke[i].y);
             ctx.lineTo(pt.x, pt.y);
@@ -101,66 +114,68 @@ function render() {
     });
     ctx.stroke();
 
-    // --- THE PEN (Cursor) ---
+    // C. Draw Pen (Cursor)
     const p = toScreen(pen.x, pen.y);
-    ctx.strokeStyle = '#d99e33'; // Orange
     ctx.fillStyle = '#d99e33';
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
     ctx.fill();
+    
+    // D. Selection Ring (Visual Aid)
+    ctx.strokeStyle = 'rgba(217, 158, 51, 0.5)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+    ctx.stroke();
 }
 
 // ==========================================
-// 5. CONTROLS: PAN & ZOOM (Mouse)
+// 6. CONTROLS (Applied to BOTH screens)
 // ==========================================
-let isDragging = false;
-let lastMouse = { x: 0, y: 0 };
 
-canvas.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    lastMouse = { x: e.clientX, y: e.clientY };
-    canvas.style.cursor = 'grabbing';
-});
+// PANNING (Drag EITHER screen to move BOTH cameras)
+function setupPan(canvas) {
+    let isDragging = false;
+    let lastX=0, lastY=0;
 
-window.addEventListener('mouseup', () => {
-    isDragging = false;
-    canvas.style.cursor = 'default';
-});
-
-canvas.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        lastX = e.clientX; lastY = e.clientY;
+        canvas.style.cursor = 'grabbing';
+    });
     
-    const dxPx = e.clientX - lastMouse.x;
-    const dyPx = e.clientY - lastMouse.y;
-    
-    // Move Camera (Pan)
-    camera.x -= dxPx / camera.zoom;
-    camera.y += dyPx / camera.zoom; 
-    
-    lastMouse = { x: e.clientX, y: e.clientY };
-    render();
-});
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        canvas.style.cursor = 'crosshair';
+    });
 
-// Zoom Wheel
-canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const zoomSpeed = 0.5;
-    if (e.deltaY < 0) camera.zoom += zoomSpeed; 
-    else camera.zoom = Math.max(0.5, camera.zoom - zoomSpeed);
-    render();
-}, { passive: false });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        
+        // Move Camera (Speed depends on which screen you drag!)
+        // If dragging Site Plan (Zoom 2), moves fast.
+        // If dragging Work Zone (Zoom 10), moves slow.
+        const currentZoom = (canvas === siteCanvas) ? ZOOM_SITE : ZOOM_WORK;
+        
+        camera.x -= dx / currentZoom;
+        camera.y += dy / currentZoom;
+        
+        lastX = e.clientX; lastY = e.clientY;
+        renderAll();
+    });
+}
+// Activate Panning on both
+setupPan(siteCanvas);
+setupPan(workCanvas);
 
-// ==========================================
-// 6. CONTROLS: DRAWING (Keyboard)
-// ==========================================
+// KEYBOARD DRAWING
 window.addEventListener('keydown', (e) => {
-    const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'c', 'C', 'r', 'R', 'b', 'B'];
+    const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
     if (keys.includes(e.key)) e.preventDefault(); 
 
-    const step = 1; // 1 Foot per tap
-    
-    let dx = 0; 
-    let dy = 0;
+    const step = 1; // 1 foot per tap
+    let dx = 0, dy = 0;
 
     if (e.key === 'ArrowUp') dy = step;
     if (e.key === 'ArrowDown') dy = -step;
@@ -171,39 +186,32 @@ window.addEventListener('keydown', (e) => {
         pen.x += dx;
         pen.y += dy;
         currentStroke.push({ ...pen });
-        render();
+        renderAll();
     }
     
-    // --- LIFT PEN / NEW LINE (Spacebar) ---
+    // LIFT PEN (Space)
     if (e.key === ' ') {
-        if (currentStroke.length > 0) {
-            history.push([...currentStroke]);
-        }
-        currentStroke = []; // Empty current stroke
-        // Start waiting for next move
-        // We don't push a point yet, so no line connects to the old one
-        currentStroke.push({ ...pen }); 
-        render();
-    }
-    
-    // --- BUTTONS ---
-    btnGo.onclick = () => {
-        pen.x = parseFloat(inputX.value);
-        pen.y = parseFloat(inputY.value);
+        if (currentStroke.length > 0) history.push([...currentStroke]);
+        currentStroke = [];
         currentStroke.push({ ...pen });
-        render();
-        canvas.focus();
-    };
-    
-    // --- FIX: RECENTER ON 0,0 ---
-    btnRecenter.onclick = () => {
-        camera.x = 0;
-        camera.y = 0;
-        camera.zoom = 5; // Reset zoom to default
-        render();
-        canvas.focus();
-    };
+        renderAll();
+    }
 });
 
-// Initial Render
-render();
+// BUTTONS
+btnGo.onclick = () => {
+    pen.x = parseFloat(inputX.value);
+    pen.y = parseFloat(inputY.value);
+    currentStroke.push({ ...pen });
+    renderAll();
+};
+
+btnRecenter.onclick = () => {
+    camera.x = 0; camera.y = 0;
+    pen.x = 0; pen.y = 0;
+    currentStroke = [{x:0, y:0}];
+    renderAll();
+};
+
+// Init
+resize();
