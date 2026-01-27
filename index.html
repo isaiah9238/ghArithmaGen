@@ -11,15 +11,42 @@
     <aside id="sidebar">
       <h1>Arithma-Sketch</h1>
       
+      <div class="card" style="border-color: #d93333;">
+        <button id="btn-reset" class="reset-btn" style="background: #500; border: 1px solid #f00;">⚠️ NEW JOB (RESET)</button>
+      </div>
+
       <div class="card">
-        <strong>Target Point (ft)</strong>
+        <strong>Target Point</strong>
         <div style="display: flex; gap: 5px; margin-bottom: 5px;">
             <input type="number" id="input-x" placeholder="X" value="0.00">
             <input type="number" id="input-y" placeholder="Y" value="0.00">
         </div>
-        <button id="btn-go" class="action-btn">DRAW TO POINT</button>
+        <button id="btn-go" class="action-btn">DRAW LINE</button>
       </div>
       
+      <div class="card">
+        <strong>Curve Staker</strong>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
+            <label style="font-size: 0.8rem; align-self: center;">Radius:</label>
+            <input type="number" id="curve-radius" value="15">
+            
+            <label style="font-size: 0.8rem; align-self: center;">Facing:</label>
+            <select id="curve-facing" style="background:#111; color:#fff; border:1px solid #555;">
+                <option value="N">North</option>
+                <option value="S">South</option>
+                <option value="E">East</option>
+                <option value="W">West</option>
+            </select>
+            
+            <label style="font-size: 0.8rem; align-self: center;">Turn:</label>
+            <select id="curve-turn" style="background:#111; color:#fff; border:1px solid #555;">
+                <option value="Left">Left</option>
+                <option value="Right">Right</option>
+            </select>
+        </div>
+        <button id="btn-curve" class="action-btn" style="background: #33d9b2; color: #000;">STAKE CURVE</button>
+      </div>
+
       <div class="card">
         <strong>Live Data</strong>
         <div class="data-row">
@@ -32,14 +59,14 @@
         </div>
       </div>
 
-      <button id="btn-recenter" class="reset-btn">RECENTER (0,0)</button>
+      <button id="btn-recenter" class="reset-btn">FIND PEN</button>
 
       <div class="card help-card">
         <strong>Controls</strong>
         <ul>
-            <li><strong>Arrow Keys:</strong> Draw 1'</li>
+            <li><strong>Arrows:</strong> Draw 1'</li>
             <li><strong>Space:</strong> Lift Pen</li>
-            <li><strong>Drag Mouse:</strong> Pan View</li>
+            <li><strong>Drag:</strong> Pan View</li>
         </ul>
       </div>
     </aside>
