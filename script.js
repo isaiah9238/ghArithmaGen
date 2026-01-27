@@ -1,105 +1,78 @@
 // ==========================================
-// 1. DUAL CANVASES SETUP
+// 1. SETUP
 // ==========================================
-const siteCanvas = document.getElementById('canvasSite');
-const workCanvas = document.getElementById('canvasWork');
-const ctxSite = siteCanvas.getContext('2d');
-const ctxWork = workCanvas.getContext('2d');
+const canvas = document.getElementById('sketchCanvas');
+const ctx = canvas.getContext('2d');
 
 const inputX = document.getElementById('input-x');
 const inputY = document.getElementById('input-y');
+const inputScale = document.getElementById('input-scale');
+const offsetDisplay = document.getElementById('offset-display');
 const btnGo = document.getElementById('btn-go');
 const btnRecenter = document.getElementById('btn-recenter');
-const offsetDisplay = document.getElementById('offset-display');
 
 // ==========================================
-// 2. THE DATABASE (Vector Storage)
+// 2. DATA STORAGE (The "Database")
 // ==========================================
 let history = []; 
 let currentStroke = []; 
 let pen = { x: 0, y: 0 }; 
 
-// ==========================================
-// 3. THE CAMERAS (Two Viewports)
-// ==========================================
-// We share X/Y (Center) but have different ZOOM levels
 let camera = {
-    x: 0, // World X at center
-    y: 0  // World Y at center
+    x: 0, 
+    y: 0,
+    zoom: 5 // Default Scale
 };
 
-// CONSTANT ZOOM SETTINGS (Locked)
-const ZOOM_SITE = 2;  // Viewport 1 Scale
-const ZOOM_WORK = 10; // Viewport 2 Scale
-
 // ==========================================
-// 4. RESIZE & RENDER LOOP
+// 3. RENDER ENGINE
 // ==========================================
 function resize() {
-    siteCanvas.width = siteCanvas.offsetWidth;
-    siteCanvas.height = siteCanvas.offsetHeight;
-    workCanvas.width = workCanvas.offsetWidth;
-    workCanvas.height = workCanvas.offsetHeight;
-    renderAll();
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    render();
 }
 window.addEventListener('resize', resize);
-// Setup styling
-[ctxSite, ctxWork].forEach(ctx => {
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-});
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
 
-// Start Stroke
+// Start First Stroke
 currentStroke.push({ ...pen });
 
-// ==========================================
-// 5. THE DUAL RENDERER
-// ==========================================
-function renderAll() {
-    // Render Left Screen (Site Plan)
-    renderView(ctxSite, siteCanvas, ZOOM_SITE);
-    // Render Right Screen (Detail Work)
-    renderView(ctxWork, workCanvas, ZOOM_WORK);
-    
-    // Update Sidebar Data
-    inputX.value = pen.x.toFixed(2);
-    inputY.value = pen.y.toFixed(2);
-    const dist = Math.sqrt(pen.x**2 + pen.y**2);
-    offsetDisplay.innerText = `${dist.toFixed(2)} ft`;
-}
-
-// The Core Drawing Function (Reused for both screens)
-function renderView(ctx, canvas, zoom) {
-    // Clear
+function render() {
+    // 1. Clear Screen
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Math Helper: World -> Screen
+    // 2. Read Zoom
+    camera.zoom = parseFloat(inputScale.value) || 5;
+
+    // 3. Math Helpers
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     
-    // Transform Function
     const toScreen = (x, y) => ({
-        x: (x - camera.x) * zoom + cx,
-        y: (camera.y - y) * zoom + cy 
+        x: (x - camera.x) * camera.zoom + cx,
+        y: (camera.y - y) * camera.zoom + cy 
     });
 
-    // A. Draw Grid / Origin
+    // 4. Draw Origin & Grid
     const origin = toScreen(0,0);
+    
+    // Axis Lines
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    // Axis Lines
     ctx.moveTo(0, origin.y); ctx.lineTo(canvas.width, origin.y);
     ctx.moveTo(origin.x, 0); ctx.lineTo(origin.x, canvas.height);
     ctx.stroke();
 
-    // Red Origin Dot
+    // Origin Dot (Red)
     ctx.fillStyle = '#ff3333';
     ctx.beginPath();
     ctx.arc(origin.x, origin.y, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // B. Draw Ink History
+    // 5. Draw Lines (History)
     ctx.strokeStyle = '#f3e2a0'; // Gold
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -114,60 +87,51 @@ function renderView(ctx, canvas, zoom) {
     });
     ctx.stroke();
 
-    // C. Draw Pen (Cursor)
+    // 6. Draw Pen (Cursor)
     const p = toScreen(pen.x, pen.y);
     ctx.fillStyle = '#d99e33';
     ctx.beginPath();
     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
     ctx.fill();
-    
-    // D. Selection Ring (Visual Aid)
-    ctx.strokeStyle = 'rgba(217, 158, 51, 0.5)';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-    ctx.stroke();
+
+    // 7. Update Displays
+    inputX.value = pen.x.toFixed(2);
+    inputY.value = pen.y.toFixed(2);
+    const dist = Math.sqrt(pen.x**2 + pen.y**2);
+    offsetDisplay.innerText = `${dist.toFixed(2)}'`;
 }
 
 // ==========================================
-// 6. CONTROLS (Applied to BOTH screens)
+// 4. CONTROLS
 // ==========================================
 
-// PANNING (Drag EITHER screen to move BOTH cameras)
-function setupPan(canvas) {
-    let isDragging = false;
-    let lastX=0, lastY=0;
+// PANNING (Mouse Drag)
+let isDragging = false;
+let lastX=0, lastY=0;
 
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        lastX = e.clientX; lastY = e.clientY;
-        canvas.style.cursor = 'grabbing';
-    });
+canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastX = e.clientX; lastY = e.clientY;
+    canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mouseup', () => {
+    isDragging = false;
+    canvas.style.cursor = 'crosshair';
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
     
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        canvas.style.cursor = 'crosshair';
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-        
-        // Move Camera (Speed depends on which screen you drag!)
-        // If dragging Site Plan (Zoom 2), moves fast.
-        // If dragging Work Zone (Zoom 10), moves slow.
-        const currentZoom = (canvas === siteCanvas) ? ZOOM_SITE : ZOOM_WORK;
-        
-        camera.x -= dx / currentZoom;
-        camera.y += dy / currentZoom;
-        
-        lastX = e.clientX; lastY = e.clientY;
-        renderAll();
-    });
-}
-// Activate Panning on both
-setupPan(siteCanvas);
-setupPan(workCanvas);
+    // Reverse Pan (Dragging moves camera)
+    camera.x -= dx / camera.zoom;
+    camera.y += dy / camera.zoom;
+    
+    lastX = e.clientX; lastY = e.clientY;
+    render();
+});
 
 // KEYBOARD DRAWING
 window.addEventListener('keydown', (e) => {
@@ -186,7 +150,7 @@ window.addEventListener('keydown', (e) => {
         pen.x += dx;
         pen.y += dy;
         currentStroke.push({ ...pen });
-        renderAll();
+        render();
     }
     
     // LIFT PEN (Space)
@@ -194,7 +158,7 @@ window.addEventListener('keydown', (e) => {
         if (currentStroke.length > 0) history.push([...currentStroke]);
         currentStroke = [];
         currentStroke.push({ ...pen });
-        renderAll();
+        render();
     }
 });
 
@@ -203,15 +167,17 @@ btnGo.onclick = () => {
     pen.x = parseFloat(inputX.value);
     pen.y = parseFloat(inputY.value);
     currentStroke.push({ ...pen });
-    renderAll();
+    render();
 };
 
 btnRecenter.onclick = () => {
     camera.x = 0; camera.y = 0;
     pen.x = 0; pen.y = 0;
     currentStroke = [{x:0, y:0}];
-    renderAll();
+    render();
 };
+
+inputScale.onchange = render;
 
 // Init
 resize();
