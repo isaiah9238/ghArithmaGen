@@ -12,12 +12,23 @@
       <h1>Arithma-Sketch</h1>
       <p>Use Arrow Keys to Draw<br>Space to Shake (Clear)</p>
       
-      <div class="card">
-        <strong>Position (ft)</strong>
-        <div style="display: flex; gap: 5px; align-items: center;">
-            <input type="number" id="input-x" value="0.00" step="1.00" style="width: 60px; padding: 4px;">
-            <input type="number" id="input-y" value="0.00" step="1.00" style="width: 60px; padding: 4px;">
-            <button id="btn-go" style="cursor: pointer; background: #d99e33; border: none; padding: 5px 10px; font-weight: bold;">GO</button>
+            <div class="card">
+        <strong>Navigation & Scale</strong>
+        
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 8px;">
+            <label style="font-size: 0.8rem; color: #a3956a;">X:</label>
+            <input type="number" id="input-x" value="0.00" step="1.00" style="width: 50px; padding: 4px;">
+            <label style="font-size: 0.8rem; color: #a3956a;">Y:</label>
+            <input type="number" id="input-y" value="0.00" step="1.00" style="width: 50px; padding: 4px;">
+            <button id="btn-go" style="cursor: pointer; background: #d99e33; border: none; padding: 5px 10px; font-weight: bold; border-radius: 4px;">GO</button>
+        </div>
+
+        <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
+             <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="font-size: 0.8rem; color: #a3956a;">Zoom:</label>
+                <input type="number" id="input-scale" value="5" step="1" style="width: 40px; padding: 4px;"> 
+             </div>
+             <button id="btn-recenter" style="cursor: pointer; background: #2d2500; color: #f3e2a0; border: 1px solid #f3e2a0; padding: 4px 8px; font-size: 0.7rem; border-radius: 4px;">Recenter (0,0)</button>
         </div>
       </div>
       
