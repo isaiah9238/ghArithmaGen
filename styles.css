@@ -2,8 +2,7 @@
   --bg-color: #0f0f0f;
   --panel-color: #1a1a1a;
   --text-color: #dcdcdc;
-  --accent-gold: #f3e2a0;
-  --border-color: #3d3d3d;
+  --gold: #f3e2a0;
 }
 
 body {
@@ -12,15 +11,14 @@ body {
   height: 100vh;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: 'Segoe UI', sans-serif;
-  overflow: hidden; /* No scrolling allowed */
+  font-family: monospace; /* Surveyor style font */
+  overflow: hidden;
 }
 
-/* SIDEBAR */
 aside {
-  width: 220px;
-  background-color: var(--panel-color);
-  border-right: 1px solid var(--border-color);
+  width: 200px;
+  background: var(--panel-color);
+  border-right: 1px solid #333;
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -28,33 +26,32 @@ aside {
   z-index: 10;
 }
 
-/* CARDS */
 .card {
   background: #252525;
   padding: 10px;
-  border-radius: 6px;
   border: 1px solid #333;
+  border-radius: 4px;
 }
 
 input {
     background: #111;
     border: 1px solid #555;
     color: #fff;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 5px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/* BUTTONS */
 .action-btn {
     width: 100%;
     background: #d99e33;
     border: none;
-    padding: 8px;
+    padding: 10px;
     font-weight: bold;
     cursor: pointer;
-    border-radius: 4px;
     margin-top: 5px;
 }
+
 .reset-btn {
     width: 100%;
     background: #444;
@@ -62,39 +59,16 @@ input {
     border: 1px solid #666;
     padding: 8px;
     cursor: pointer;
-    border-radius: 4px;
 }
 
-/* SPLIT SCREEN ENGINE */
-#split-container {
+#canvas-container {
     flex-grow: 1;
-    display: flex; /* Side by side */
-    height: 100%;
-}
-
-.view-wrapper {
-    flex: 1; /* Each takes 50% width */
     position: relative;
-    border-right: 2px solid var(--accent-gold);
-    overflow: hidden;
+    cursor: crosshair;
 }
 
 canvas {
     display: block;
     width: 100%;
     height: 100%;
-    background: #000;
-    cursor: crosshair;
-}
-
-.view-label {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(0,0,0,0.7);
-    color: var(--accent-gold);
-    padding: 4px 8px;
-    border: 1px solid var(--accent-gold);
-    font-size: 0.7rem;
-    pointer-events: none;
 }
