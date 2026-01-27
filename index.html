@@ -8,18 +8,26 @@
   </head>
   <body>
 
-    <aside id="sidebar">
+        <aside id="sidebar">
       <h1>Arithma-Sketch</h1>
       
-      <div class="card" style="border-color: #d93333;">
-        <button id="btn-reset" class="reset-btn" style="background: #500; border: 1px solid #f00;">⚠️ NEW JOB (RESET)</button>
+      <div class="card">
+        <strong>Job Management</strong>
+        <div style="display: flex; gap: 5px; margin-top: 5px;">
+             <button id="btn-reset" class="reset-btn" style="background: #444; border: 1px solid #666;">New Job</button>
+             <button id="btn-recenter" class="reset-btn" style="background: #444; border: 1px solid #666;">Find Pen</button>
+        </div>
       </div>
 
       <div class="card">
-        <strong>Target Point</strong>
-        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-            <input type="number" id="input-x" placeholder="X" value="0.00">
-            <input type="number" id="input-y" placeholder="Y" value="0.00">
+        <strong>Target Coordinate</strong>
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+            <label style="width: 20px; text-align: right; color: #a3956a;">E:</label>
+            <input type="number" id="input-x" placeholder="0.00" value="0.00">
+        </div>
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+            <label style="width: 20px; text-align: right; color: #a3956a;">N:</label>
+            <input type="number" id="input-y" placeholder="0.00" value="0.00">
         </div>
         <button id="btn-go" class="action-btn">DRAW LINE</button>
       </div>
@@ -48,25 +56,26 @@
       </div>
 
       <div class="card">
-        <strong>Live Data</strong>
         <div class="data-row">
             <span>Offset:</span>
             <span id="offset-display" style="color:#f3e2a0">0.00'</span>
         </div>
-        <div class="data-row">
+        <div class="data-row" style="margin-top:5px;">
              <span>Zoom:</span>
-             <input type="number" id="input-scale" value="5" step="1" style="width: 40px;">
+             <input type="number" id="input-scale" value="5" step="1" style="width: 50px;">
         </div>
       </div>
-
-      <button id="btn-recenter" class="reset-btn">FIND PEN</button>
 
       <div class="card help-card">
         <strong>Controls</strong>
         <ul>
             <li><strong>Arrows:</strong> Draw 1'</li>
             <li><strong>Space:</strong> Lift Pen</li>
-            <li><strong>Drag:</strong> Pan View</li>
+            <li><strong>Drag:</strong> Pan Map</li>
+        </ul>
+      </div>
+    </aside>
+
         </ul>
       </div>
     </aside>
