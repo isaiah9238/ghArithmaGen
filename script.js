@@ -184,83 +184,218 @@ canvas.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 
-// --- B. MOUSE MOVE & SNAP ENGINE (NEW!) ---
+// ==========================================
+// ADVANCED SNAP & MEASURE ENGINE
+// ==========================================
+const snapEnd = document.getElementById('snap-end');
+const snapMid = document.getElementById('snap-mid');
+const snapPerp = document.getElementById('snap-perp');
+const btnMeasure = document.getElementById('btn-measure');
+const measureOutput = document.getElementById('measure-output');
+
+let measureMode = false;
+let measureStart = null; 
+
+// --- DRAG STATE (Essential for panning) ---
 let isDragging = false;
 let lastX=0, lastY=0;
 
+// 1. TOGGLE MEASURE MODE
+btnMeasure.onclick = () => {
+    measureMode = !measureMode;
+    measureStart = null; 
+    if (measureMode) {
+        btnMeasure.innerText = "RULER: ON";
+        btnMeasure.style.background = "#f3e2a0";
+        btnMeasure.style.color = "#000";
+        canvas.style.cursor = 'help';
+    } else {
+        btnMeasure.innerText = "RULER: OFF";
+        btnMeasure.style.background = "#333";
+        btnMeasure.style.color = "#aaa";
+        measureOutput.innerText = "";
+        canvas.style.cursor = 'crosshair';
+    }
+    render();
+};
+
+// 2. MOUSE UP (Reset Drag)
+window.addEventListener('mouseup', () => { 
+    isDragging = false; 
+    if (!measureMode) canvas.style.cursor = 'crosshair'; 
+});
+
+// 3. MOUSE DOWN (Click Action)
 canvas.addEventListener('mousedown', (e) => {
-    // If we are snapped, clicking should move the pen to the snap point!
+    isDragging = false; 
+
+    // DETERMINE CLICK POINT (Snap or Free)
+    let clickX = pen.x; 
+    let clickY = pen.y;
+    
+    // Calculate world coords again for the click
+    const rect = canvas.getBoundingClientRect();
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const worldX = ((e.clientX - rect.left) - cx) / camera.zoom + camera.x;
+    const worldY = camera.y - ((e.clientY - rect.top) - cy) / camera.zoom;
+
+    if (snap.active) {
+        clickX = snap.x;
+        clickY = snap.y;
+    } else {
+        // If not snapped, click where the mouse is
+        clickX = worldX;
+        clickY = worldY;
+    }
+
+    // MEASURE MODE LOGIC
+    if (measureMode) {
+        if (!measureStart) {
+            // First Click: Start Measuring
+            measureStart = { x: clickX, y: clickY };
+            measureOutput.innerText = "Select 2nd point...";
+        } else {
+            // Second Click: Finish Measuring
+            const dx = clickX - measureStart.x;
+            const dy = clickY - measureStart.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Calculate Azimuth
+            let az = Math.atan2(dx, dy) * (180 / Math.PI);
+            if (az < 0) az += 360;
+
+            measureOutput.innerText = `Dist: ${dist.toFixed(2)}' | Az: ${az.toFixed(1)}°`;
+            
+            // Reset for next measurement
+            measureStart = null;
+        }
+        render();
+        return; // STOP HERE (Don't draw or drag)
+    }
+
+    // DRAW MODE LOGIC
     if (snap.active) {
         pen.x = snap.x;
         pen.y = snap.y;
         currentStroke.push({ ...pen });
         render();
-        return; // Don't drag if we just clicked a point
+        return; 
     }
+
+    // Pan (Drag)
     isDragging = true;
     lastX = e.clientX; lastY = e.clientY;
     canvas.style.cursor = 'grabbing';
 });
 
-window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'crosshair'; });
-
+// 4. MOUSE MOVE (The Brains)
 canvas.addEventListener('mousemove', (e) => {
-    // 1. PANNING LOGIC
+    // PANNING
     if (isDragging) {
         const dx = e.clientX - lastX; 
         const dy = e.clientY - lastY;
         camera.x -= dx / camera.zoom; 
         camera.y += dy / camera.zoom;
-        lastX = e.clientX; 
-        lastY = e.clientY;
+        lastX = e.clientX; lastY = e.clientY;
         render();
         return;
     }
 
-    // 2. SNAPPING LOGIC (The Magnet)
-    // Convert mouse pixels to world coordinates
+    // GET WORLD COORDINATES
     const rect = canvas.getBoundingClientRect();
     const mousePxX = e.clientX - rect.left;
     const mousePxY = e.clientY - rect.top;
-    
-    // Reverse Transform (Screen -> World)
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     const worldX = (mousePxX - cx) / camera.zoom + camera.x;
-    const worldY = camera.y - (mousePxY - cy) / camera.zoom;
+    const worldY = camera.y - (mousePxY - cy) / camera.zoom; 
 
-    // Check distance to all known points
-    let nearestDist = Infinity;
-    let nearestPt = null;
+    // ADVANCED SNAP LOGIC
+    let bestDist = Infinity;
+    let bestPt = null;
+    let bestType = "";
 
-    // Collect all points from history + current stroke
-    const allStrokes = [...history, currentStroke];
-    
-    allStrokes.forEach(stroke => {
-        stroke.forEach(pt => {
-            const dx = pt.x - worldX;
-            const dy = pt.y - worldY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearestPt = pt;
-            }
-        });
-    });
-
-    // Snap Threshold (in pixels, converted to world units)
     const snapPixelThreshold = 15; 
     const snapWorldThreshold = snapPixelThreshold / camera.zoom;
 
-    if (nearestPt && nearestDist < snapWorldThreshold) {
+    const allStrokes = [...history, currentStroke];
+
+    // Helper: Distance squared
+    const distSq = (x1, y1, x2, y2) => (x1-x2)**2 + (y1-y2)**2;
+
+    allStrokes.forEach(stroke => {
+        if (stroke.length < 2) return; 
+
+        for (let i = 0; i < stroke.length; i++) {
+            const p1 = stroke[i];
+            
+            // A. ENDPOINT SNAP
+            if (snapEnd.checked) {
+                const d = distSq(p1.x, p1.y, worldX, worldY);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestPt = { x: p1.x, y: p1.y };
+                    bestType = "END";
+                }
+            }
+
+            // Check segments
+            if (i < stroke.length - 1) {
+                const p2 = stroke[i+1];
+
+                // B. MIDPOINT SNAP
+                if (snapMid.checked) {
+                    const mx = (p1.x + p2.x) / 2;
+                    const my = (p1.y + p2.y) / 2;
+                    const d = distSq(mx, my, worldX, worldY);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestPt = { x: mx, y: my };
+                        bestType = "MID";
+                    }
+                }
+
+                // C. PERPENDICULAR SNAP
+                if (snapPerp.checked) {
+                    const A = worldX - p1.x;
+                    const B = worldY - p1.y;
+                    const C = p2.x - p1.x;
+                    const D = p2.y - p1.y;
+                    
+                    const dot = A * C + B * D;
+                    const lenSq = C * C + D * D;
+                    let param = -1;
+                    if (lenSq !== 0) param = dot / lenSq;
+
+                    if (param > 0 && param < 1) { 
+                        const xx = p1.x + param * C;
+                        const yy = p1.y + param * D;
+                        const d = distSq(xx, yy, worldX, worldY);
+                        if (d < bestDist) {
+                            bestDist = d;
+                            bestPt = { x: xx, y: yy };
+                            bestType = "PERP";
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // APPLY SNAP
+    if (bestPt && Math.sqrt(bestDist) < snapWorldThreshold) {
         snap.active = true;
-        snap.x = nearestPt.x;
-        snap.y = nearestPt.y;
-        canvas.style.cursor = 'none'; // Hide mouse when snapped
+        snap.x = bestPt.x;
+        snap.y = bestPt.y;
+        snap.type = bestType;
+        canvas.style.cursor = 'none';
     } else {
         snap.active = false;
-        canvas.style.cursor = 'crosshair';
+        snap.type = '';
+        canvas.style.cursor = measureMode ? 'help' : 'crosshair';
     }
+
     render();
 });
 
