@@ -407,8 +407,74 @@ btnFit.onclick = () => {
     
     camera.x = centerX;
     camera.y = centerY;
-    camera.zoom = Math.min(zoomX, zoomY, 50); // Cap max zoom
+    camera.zoom = Math.min(zoomX, zoomY, 50); // Cap max zoom    
+    render();
+};
+
+// ==========================================
+// TRAVERSE TOOL (Bearing & Distance)
+// ==========================================
+const inputAz = document.getElementById('input-az');
+const inputDist = document.getElementById('input-dist');
+const btnTraverse = document.getElementById('btn-traverse');
+const btnTurnLeft = document.getElementById('btn-turn-left');
+const btnTurnRight = document.getElementById('btn-turn-right');
+
+// 1. HELPER: Calculate current back-azimuth (direction we just came from)
+function getPreviousAzimuth() {
+    if (currentStroke.length < 2) return 0; // Default to North if no history
+    const p1 = currentStroke[currentStroke.length - 2];
+    const p2 = currentStroke[currentStroke.length - 1];
     
+    // Math.atan2 gives radians -PI to +PI. We convert to Degrees 0-360.
+    let deg = Math.atan2(p2.x - p1.x, p2.y - p1.y) * (180 / Math.PI); // Note: (dx, dy) swapped for Azimuth (0=N) logic
+    if (deg < 0) deg += 360;
+    return deg;
+}
+
+// 2. TURN BUTTONS (Quick Angle Logic)
+// If I am walking North (0) and turn Right 90, my new Azimuth is 90.
+btnTurnLeft.onclick = () => {
+    let currentAz = parseFloat(inputAz.value) || 0;
+    currentAz = (currentAz - 90 + 360) % 360; // Subtract 90
+    inputAz.value = currentAz;
+};
+
+btnTurnRight.onclick = () => {
+    let currentAz = parseFloat(inputAz.value) || 0;
+    currentAz = (currentAz + 90) % 360; // Add 90
+    inputAz.value = currentAz;
+};
+
+// 3. THE CALCULATOR
+btnTraverse.onclick = () => {
+    const az = parseFloat(inputAz.value) || 0;
+    const dist = parseFloat(inputDist.value) || 0;
+
+    // Convert Survey Azimuth (0 is North, Clockwise) to Math Radians
+    // Math: 0 is East, Counter-Clockwise. 
+    // Trig Formula for Surveying: 
+    // dE (x) = dist * sin(az)
+    // dN (y) = dist * cos(az)
+    
+    const rad = (az * Math.PI) / 180;
+    
+    const dx = dist * Math.sin(rad);
+    const dy = dist * Math.cos(rad);
+
+    // Move Pen
+    pen.x += dx;
+    pen.y += dy;
+
+    currentStroke.push({ ...pen });
+    
+    // Update UI
+    inputX.value = pen.x.toFixed(2);
+    inputY.value = pen.y.toFixed(2);
+    
+    // Center camera on new point so we don't draw off-screen
+    camera.x = pen.x;
+    camera.y = pen.y;    
     render();
 };
 
