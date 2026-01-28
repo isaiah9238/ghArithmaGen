@@ -96,6 +96,28 @@
              <input type="number" id="input-scale" value="5" step="1" style="width: 50px;">
         </div>
       </div>
+
+      <div class="card">
+        <strong>Snaps & Tools</strong>
+        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="snap-end" checked> Endpoint
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="snap-mid" checked> Midpoint
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="snap-perp"> Perpendicular
+            </label>
+            
+            <hr style="width:100%; border:0; border-top:1px solid #444; margin:5px 0;">
+
+            <button id="btn-measure" class="reset-btn" style="background:#333; border:1px solid #666; color:#aaa;">
+                RULER: OFF
+            </button>
+            <div id="measure-output" style="font-size:0.75rem; color:#f3e2a0; min-height:1.2em;"></div>
+        </div>
+      </div>
            
       <div class="card help-card">
         <strong>System Info</strong>
