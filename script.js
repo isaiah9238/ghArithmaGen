@@ -91,11 +91,7 @@ function render() {
         ctx.strokeStyle = '#FFFF00'; // Yellow
         ctx.lineWidth = 2;
         ctx.strokeRect(s.x - 6, s.y - 6, 12, 12); // The Box
-        
-        ctx.fillStyle = '#FFFF00';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText("SNAP", s.x + 10, s.y - 10);
-    } else {
+        } else {
         // Normal Pen
         const p = toScreen(pen.x, pen.y);
         ctx.fillStyle = '#d99e33';
