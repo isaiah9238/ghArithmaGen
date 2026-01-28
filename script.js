@@ -24,9 +24,10 @@ let history = [];
 let currentStroke = []; 
 let pen = { x: 0, y: 0 }; 
 let camera = { x: 0, y: 0, zoom: 5 };
+let snap = { active: false, x: 0, y: 0, type: '' }; // NEW: Snap State
 
 // ==========================================
-// 3. RENDER ENGINE (The "HUD")
+// 3. RENDER ENGINE
 // ==========================================
 function resize() {
     canvas.width = canvas.offsetWidth;
@@ -43,7 +44,10 @@ currentStroke.push({ ...pen });
 function render() {
     // A. Setup
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    camera.zoom = parseFloat(inputScale.value) || 5;
+    
+    // Sync UI with Camera State
+    inputScale.value = camera.zoom.toFixed(1);
+
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     
@@ -53,15 +57,14 @@ function render() {
         y: (camera.y - y) * camera.zoom + cy 
     });
 
-    // B. DRAW GRID (The Graph Paper)
+    // B. DRAW GRID
     drawGrid(ctx, camera, cx, cy, canvas.width, canvas.height);
 
-    // C. DRAW ORIGIN (0,0)
+    // C. DRAW ORIGIN
     const origin = toScreen(0,0);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    // Bold Axis Lines
     ctx.moveTo(origin.x - 10, origin.y); ctx.lineTo(origin.x + 10, origin.y);
     ctx.moveTo(origin.x, origin.y - 10); ctx.lineTo(origin.x, origin.y + 10);
     ctx.stroke();
@@ -81,14 +84,27 @@ function render() {
     });
     ctx.stroke();
 
-    // E. DRAW PEN
-    const p = toScreen(pen.x, pen.y);
-    ctx.fillStyle = '#d99e33';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    ctx.fill();
+    // E. DRAW SNAP CURSOR OR PEN
+    // If we are snapped, draw the Yellow Box
+    if (snap.active) {
+        const s = toScreen(snap.x, snap.y);
+        ctx.strokeStyle = '#FFFF00'; // Yellow
+        ctx.lineWidth = 2;
+        ctx.strokeRect(s.x - 6, s.y - 6, 12, 12); // The Box
+        
+        ctx.fillStyle = '#FFFF00';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText("SNAP", s.x + 10, s.y - 10);
+    } else {
+        // Normal Pen
+        const p = toScreen(pen.x, pen.y);
+        ctx.fillStyle = '#d99e33';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-    // F. HUD ELEMENTS (Static on Screen)
+    // F. HUD ELEMENTS
     drawNorthArrow(ctx, canvas.width);
     drawScaleBar(ctx, canvas.height, camera.zoom);
 
@@ -101,10 +117,8 @@ function render() {
 
 // --- HELPER: GRID SYSTEM ---
 function drawGrid(ctx, cam, cx, cy, w, h) {
-    const step = 10; // Grid lines every 10 feet
+    const step = 10; 
     const zoom = cam.zoom;
-    
-    // Don't draw if grid is too tiny (performance)
     if (step * zoom < 10) return; 
 
     ctx.strokeStyle = '#222';
@@ -113,138 +127,168 @@ function drawGrid(ctx, cam, cx, cy, w, h) {
     ctx.font = '10px monospace';
     ctx.textAlign = 'center';
 
-    // Calculate Visible World Bounds
     const worldLeft = cam.x - (cx / zoom);
     const worldRight = cam.x + (cx / zoom);
     const worldTop = cam.y + (cy / zoom);
     const worldBottom = cam.y - (cy / zoom);
 
-    // Snap to nearest 10
     const startX = Math.floor(worldLeft / step) * step;
     const endX = Math.ceil(worldRight / step) * step;
     const startY = Math.floor(worldBottom / step) * step;
     const endY = Math.ceil(worldTop / step) * step;
 
     ctx.beginPath();
-    
-    // Vertical Lines (Eastings)
     for (let x = startX; x <= endX; x += step) {
         const screenX = (x - cam.x) * zoom + cx;
-        ctx.moveTo(screenX, 0);
-        ctx.lineTo(screenX, h);
-        // Label
+        ctx.moveTo(screenX, 0); ctx.lineTo(screenX, h);
         if (x % 50 === 0) ctx.fillText(x, screenX + 2, h - 5); 
     }
-
-    // Horizontal Lines (Northings)
     for (let y = startY; y <= endY; y += step) {
         const screenY = (cam.y - y) * zoom + cy;
-        ctx.moveTo(0, screenY);
-        ctx.lineTo(w, screenY);
-        // Label
+        ctx.moveTo(0, screenY); ctx.lineTo(w, screenY);
         if (y % 50 === 0) ctx.fillText(y, 5, screenY - 2);
     }
     ctx.stroke();
 }
 
-// --- HELPER: NORTH ARROW ---
 function drawNorthArrow(ctx, w) {
-    const x = w - 40;
-    const y = 40;
-    
-    ctx.strokeStyle = '#f3e2a0';
-    ctx.fillStyle = '#f3e2a0';
-    ctx.lineWidth = 2;
-    
-    // Arrow Head
-    ctx.beginPath();
-    ctx.moveTo(x, y - 20); // Top
-    ctx.lineTo(x - 10, y + 10); // Bottom Left
-    ctx.lineTo(x, y); // Center notch
-    ctx.lineTo(x + 10, y + 10); // Bottom Right
-    ctx.closePath();
-    ctx.fill();
-    
-    // "N" Label
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('N', x, y - 25);
+    const x = w - 40; const y = 40;
+    ctx.strokeStyle = '#f3e2a0'; ctx.fillStyle = '#f3e2a0'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y - 20); ctx.lineTo(x - 10, y + 10);
+    ctx.lineTo(x, y); ctx.lineTo(x + 10, y + 10); ctx.closePath(); ctx.fill();
+    ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('N', x, y - 25);
 }
 
-// --- HELPER: SCALE BAR ---
 function drawScaleBar(ctx, h, zoom) {
-    // We want a bar that represents roughly 100px on screen
-    // but rounds to a nice surveyor number (10', 20', 50', 100')
-    const targetPx = 100;
-    const worldUnits = targetPx / zoom;
-    
-    // Round to nice number
+    const targetPx = 100; const worldUnits = targetPx / zoom;
     let scaleUnit = 10;
-    if (worldUnits > 20) scaleUnit = 20;
-    if (worldUnits > 50) scaleUnit = 50;
-    if (worldUnits > 100) scaleUnit = 100;
-    
-    const barWidth = scaleUnit * zoom;
-    const x = 20;
-    const y = h - 30;
-
-    // Draw Bar
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, y - 5); // Tick Up
-    ctx.lineTo(x + barWidth, y - 5); // Tick Up
-    ctx.lineTo(x + barWidth, y);
-    ctx.lineTo(x, y); // Bottom Line
-    ctx.stroke();
-
-    // Fill alternating blocks (Classic Survey Style)
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x, y - 5, barWidth / 2, 5);
-    
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Scale: ${scaleUnit} ft`, x, y - 10);
+    if (worldUnits > 20) scaleUnit = 20; if (worldUnits > 50) scaleUnit = 50; if (worldUnits > 100) scaleUnit = 100;
+    const barWidth = scaleUnit * zoom; const x = 20; const y = h - 30;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 5); ctx.lineTo(x + barWidth, y - 5);
+    ctx.lineTo(x + barWidth, y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.fillRect(x, y - 5, barWidth / 2, 5);
+    ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.fillText(`Scale: ${scaleUnit} ft`, x, y - 10);
 }
 
 // ==========================================
 // 4. CONTROLS
 // ==========================================
 
-// A. KEYBOARD
+// --- A. MOUSE WHEEL ZOOM (NEW!) ---
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomIntensity = 0.1;
+    const delta = e.deltaY < 0 ? 1 : -1;
+    const newZoom = camera.zoom + (delta * zoomIntensity * camera.zoom);
+    
+    // Clamp zoom levels
+    camera.zoom = Math.max(0.5, Math.min(newZoom, 100));
+    render();
+}, { passive: false });
+
+
+// --- B. MOUSE MOVE & SNAP ENGINE (NEW!) ---
+let isDragging = false;
+let lastX=0, lastY=0;
+
+canvas.addEventListener('mousedown', (e) => {
+    // If we are snapped, clicking should move the pen to the snap point!
+    if (snap.active) {
+        pen.x = snap.x;
+        pen.y = snap.y;
+        currentStroke.push({ ...pen });
+        render();
+        return; // Don't drag if we just clicked a point
+    }
+    isDragging = true;
+    lastX = e.clientX; lastY = e.clientY;
+    canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'crosshair'; });
+
+canvas.addEventListener('mousemove', (e) => {
+    // 1. PANNING LOGIC
+    if (isDragging) {
+        const dx = e.clientX - lastX; 
+        const dy = e.clientY - lastY;
+        camera.x -= dx / camera.zoom; 
+        camera.y += dy / camera.zoom;
+        lastX = e.clientX; 
+        lastY = e.clientY;
+        render();
+        return;
+    }
+
+    // 2. SNAPPING LOGIC (The Magnet)
+    // Convert mouse pixels to world coordinates
+    const rect = canvas.getBoundingClientRect();
+    const mousePxX = e.clientX - rect.left;
+    const mousePxY = e.clientY - rect.top;
+    
+    // Reverse Transform (Screen -> World)
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const worldX = (mousePxX - cx) / camera.zoom + camera.x;
+    const worldY = camera.y - (mousePxY - cy) / camera.zoom;
+
+    // Check distance to all known points
+    let nearestDist = Infinity;
+    let nearestPt = null;
+
+    // Collect all points from history + current stroke
+    const allStrokes = [...history, currentStroke];
+    
+    allStrokes.forEach(stroke => {
+        stroke.forEach(pt => {
+            const dx = pt.x - worldX;
+            const dy = pt.y - worldY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestPt = pt;
+            }
+        });
+    });
+
+    // Snap Threshold (in pixels, converted to world units)
+    const snapPixelThreshold = 15; 
+    const snapWorldThreshold = snapPixelThreshold / camera.zoom;
+
+    if (nearestPt && nearestDist < snapWorldThreshold) {
+        snap.active = true;
+        snap.x = nearestPt.x;
+        snap.y = nearestPt.y;
+        canvas.style.cursor = 'none'; // Hide mouse when snapped
+    } else {
+        snap.active = false;
+        canvas.style.cursor = 'crosshair';
+    }
+    render();
+});
+
+// --- C. KEYBOARD & BUTTONS ---
 window.addEventListener('keydown', (e) => {
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
     if (keys.includes(e.key)) e.preventDefault(); 
 
-    // --- NEW: UNDO (Ctrl + Z) ---
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        
-        // Scenario 1: Undo last step of current line
         if (currentStroke.length > 1) {
             currentStroke.pop(); 
             const prev = currentStroke[currentStroke.length - 1];
-            pen.x = prev.x;
-            pen.y = prev.y;
-        }
-        // Scenario 2: Undo a finished line (bring it back to life)
-        else if (history.length > 0) {
+            pen.x = prev.x; pen.y = prev.y;
+        } else if (history.length > 0) {
             currentStroke = history.pop(); 
             const prev = currentStroke[currentStroke.length - 1];
-            pen.x = prev.x;
-            pen.y = prev.y;
+            pen.x = prev.x; pen.y = prev.y;
         }
         render();
         return; 
     }
 
-    // --- DRAWING LOGIC ---
-    const step = 1; 
-    let dx = 0, dy = 0;
-
+    const step = 1; let dx = 0, dy = 0;
     if (e.key === 'ArrowUp') dy = step;
     if (e.key === 'ArrowDown') dy = -step;
     if (e.key === 'ArrowLeft') dx = -step;
@@ -256,7 +300,6 @@ window.addEventListener('keydown', (e) => {
         render();
     }
     
-    // --- LIFT PEN (Space) ---
     if (e.key === ' ') {
         if (currentStroke.length > 0) history.push([...currentStroke]);
         currentStroke = [{ ...pen }];
@@ -264,8 +307,6 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-
-// B. CURVE TOOL
 btnCurve.onclick = () => {
     const R = parseFloat(curveRadius.value);
     const facing = curveFacing.value; 
@@ -297,7 +338,6 @@ btnCurve.onclick = () => {
     canvas.focus();
 };
 
-// C. UTILS
 btnReset.onclick = () => {
     if(confirm("Start a New Job?")) {
         history = []; currentStroke = [];
@@ -307,22 +347,6 @@ btnReset.onclick = () => {
     }
 };
 
-let isDragging = false;
-let lastX=0, lastY=0;
-canvas.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    lastX = e.clientX; lastY = e.clientY;
-    canvas.style.cursor = 'grabbing';
-});
-window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'crosshair'; });
-canvas.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - lastX; const dy = e.clientY - lastY;
-    camera.x -= dx / camera.zoom; camera.y += dy / camera.zoom;
-    lastX = e.clientX; lastY = e.clientY;
-    render();
-});
-
 btnGo.onclick = () => {
     pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value);
     currentStroke.push({ ...pen }); render();
@@ -330,4 +354,5 @@ btnGo.onclick = () => {
 btnRecenter.onclick = () => { camera.x = pen.x; camera.y = pen.y; render(); };
 inputScale.onchange = render;
 
+// Initial Draw
 resize();
