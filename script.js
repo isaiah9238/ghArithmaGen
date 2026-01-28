@@ -354,5 +354,79 @@ btnGo.onclick = () => {
 btnRecenter.onclick = () => { camera.x = pen.x; camera.y = pen.y; render(); };
 inputScale.onchange = render;
 
+// ==========================================
+// LAPTOP ZOOM CONTROLS
+// ==========================================
+
+const btnZoomIn = document.getElementById('btn-zoom-in');
+const btnZoomOut = document.getElementById('btn-zoom-out');
+const btnFit = document.getElementById('btn-fit');
+
+// 1. BUTTON ZOOM
+// Zooms in/out by 20% each click
+btnZoomIn.onclick = () => {
+    camera.zoom *= 1.2;
+    render();
+};
+
+btnZoomOut.onclick = () => {
+    camera.zoom /= 1.2;
+    // Don't let it vanish
+    if (camera.zoom < 0.5) camera.zoom = 0.5;
+    render();
+};
+
+// 2. "FIT TO SCREEN" (Finds your drawing)
+btnFit.onclick = () => {
+    // If drawing is empty, just reset
+    if (history.length === 0 && currentStroke.length <= 1) {
+        camera = { x: 0, y: 0, zoom: 5 };
+        render();
+        return;
+    }
+
+    // Find the bounds of your drawing
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    
+    const allStrokes = [...history, currentStroke];
+    allStrokes.forEach(stroke => {
+        stroke.forEach(pt => {
+            if (pt.x < minX) minX = pt.x;
+            if (pt.x > maxX) maxX = pt.x;
+            if (pt.y < minY) minY = pt.y;
+            if (pt.y > maxY) maxY = pt.y;
+        });
+    });
+
+    // Center the camera on the drawing
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    // Calculate required zoom to fit everything
+    const width = maxX - minX;
+    const height = maxY - minY;
+    // Add 20% padding
+    const zoomX = canvas.width / (width * 1.2);
+    const zoomY = canvas.height / (height * 1.2);
+    
+    camera.x = centerX;
+    camera.y = centerY;
+    camera.zoom = Math.min(zoomX, zoomY, 50); // Cap max zoom
+    
+    render();
+};
+
+// 3. KEYBOARD SHORTCUTS (+ and -)
+window.addEventListener('keydown', (e) => {
+    if (e.key === '=' || e.key === '+') { // Plus key
+        camera.zoom *= 1.1;
+        render();
+    }
+    if (e.key === '-') { // Minus key
+        camera.zoom /= 1.1;
+        render();
+    }
+});
+
 // Initial Draw
 resize();
