@@ -71,20 +71,45 @@ function render() {
     ctx.moveTo(origin.x, origin.y - 10); ctx.lineTo(origin.x, origin.y + 10);
     ctx.stroke();
 
-    // D. DRAW SKETCH
-    ctx.strokeStyle = '#f3e2a0'; // Gold
+    // D. DRAW SKETCH (New "AutoCAD Style" Logic)
     ctx.lineWidth = 2;
-    ctx.beginPath();
+    
+    // Loop through every shape in history + the one you are drawing now
     [...history, currentStroke].forEach(stroke => {
         if (stroke.length < 2) return;
+        
+        ctx.beginPath(); // Start a new path for THIS specific shape
+        
         const start = toScreen(stroke[0].x, stroke[0].y);
         ctx.moveTo(start.x, start.y);
+        
         for (let i = 1; i < stroke.length; i++) {
             const pt = toScreen(stroke[i].x, stroke[i].y);
             ctx.lineTo(pt.x, pt.y);
         }
+
+        // CHECK CLOSURE: Is the last point effectively the same as the start?
+        const first = stroke[0];
+        const last = stroke[stroke.length - 1];
+        const isClosed = Math.abs(first.x - last.x) < 0.001 && Math.abs(first.y - last.y) < 0.001;
+
+        if (isClosed) {
+            // It's a closed polygon!
+            if (showFill) {
+                ctx.fillStyle = 'rgba(243, 226, 160, 0.15)'; // Transparent Gold Fill
+                ctx.fill();
+            }
+            ctx.strokeStyle = '#f3e2a0'; // Solid Gold Outline
+        } else {
+            // It's just a line (not closed)
+            ctx.strokeStyle = '#f3e2a0'; 
+            
+            // If this is the active line (the one you are drawing right now), make it bright white
+            if (stroke === currentStroke) ctx.strokeStyle = '#fff';
+        }
+        
+        ctx.stroke(); // Draw this specific shape
     });
-    ctx.stroke()
     
     // E. DRAW SNAP CURSOR
     if (snap.active) {
@@ -139,6 +164,7 @@ function render() {
     inputY.value = pen.y.toFixed(2);
     const dist = Math.sqrt(pen.x**2 + pen.y**2);
     offsetDisplay.innerText = `${dist.toFixed(2)}'`;
+    updateLiveArea();
 }
 
 // --- HELPER: GRID SYSTEM ---
