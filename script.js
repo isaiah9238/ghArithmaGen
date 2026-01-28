@@ -25,6 +25,8 @@ let currentStroke = [];
 let pen = { x: 0, y: 0 }; 
 let camera = { x: 0, y: 0, zoom: 5 };
 let snap = { active: false, x: 0, y: 0, type: '' }; // NEW: Snap State
+let parcels = []; // Stores saved parcel data
+let showFill = true; // Toggle state
 
 // ==========================================
 // 3. RENDER ENGINE
@@ -677,6 +679,74 @@ window.addEventListener('keydown', (e) => {
         render();
     }
 });
+
+// ==========================================
+// PARCEL MANAGER & AREA
+// ==========================================
+const btnToggleFill = document.getElementById('btn-toggle-fill');
+const btnAddParcel = document.getElementById('btn-add-parcel');
+const areaDisplay = document.getElementById('area-display');
+const parcelListBody = document.getElementById('parcel-list-body');
+let parcels = []; 
+let showFill = true; 
+
+// 1. TOGGLE FILL
+btnToggleFill.onclick = () => {
+    showFill = !showFill;
+    btnToggleFill.innerText = showFill ? "Fill: ON" : "Fill: OFF";
+    btnToggleFill.style.color = showFill ? "#fff" : "#777";
+    render();
+};
+
+// 2. HELPER: CALCULATE AREA
+function getShapeArea(shape) {
+    if (!shape || shape.length < 3) return { sqft: 0, acres: 0 };
+    let sum1 = 0, sum2 = 0;
+    for (let i = 0; i < shape.length - 1; i++) {
+        sum1 += shape[i].x * shape[i+1].y;
+        sum2 += shape[i].y * shape[i+1].x;
+    }
+    const first = shape[0];
+    const last = shape[shape.length - 1];
+    if (first.x !== last.x || first.y !== last.y) {
+        sum1 += last.x * first.y;
+        sum2 += last.y * first.x;
+    }
+    const sqft = Math.abs(0.5 * (sum1 - sum2));
+    return { sqft: sqft, acres: sqft / 43560 };
+}
+
+// 3. ADD PARCEL TO LIST
+btnAddParcel.onclick = () => {
+    let targetShape = null;
+    if (currentStroke.length > 2) targetShape = currentStroke; 
+    else if (history.length > 0) targetShape = history[history.length - 1];
+
+    if (!targetShape) { alert("Draw a shape first!"); return; }
+
+    const area = getShapeArea(targetShape);
+    const parcelID = String.fromCharCode(65 + parcels.length); 
+    parcels.push({ id: parcelID, acres: area.acres, sqft: area.sqft });
+    
+    parcelListBody.innerHTML = ""; 
+    parcels.forEach(p => {
+        const row = document.createElement('tr');
+        row.style.borderBottom = "1px solid #333";
+        row.innerHTML = `
+            <td style="padding:4px; color:#f3e2a0; font-weight:bold;">${p.id}</td>
+            <td style="padding:4px; text-align:right;">${p.acres.toFixed(3)}</td>
+            <td style="padding:4px; text-align:right; color:#888;">${Math.round(p.sqft)}</td>`;
+        parcelListBody.appendChild(row);
+    });
+};
+
+function updateLiveArea() {
+    let target = currentStroke.length > 2 ? currentStroke : (history.length > 0 ? history[history.length-1] : null);
+    if(target) {
+        const a = getShapeArea(target);
+        if(areaDisplay) areaDisplay.innerText = `${a.acres.toFixed(3)} Ac`;
+    }
+}
 
 // Initial Draw
 resize();
