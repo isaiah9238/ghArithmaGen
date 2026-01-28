@@ -478,6 +478,31 @@ btnTraverse.onclick = () => {
     render();
 };
 
+// ==========================================
+// JUMP TOOL (Move without drawing)
+// ==========================================
+const btnJump = document.getElementById('btn-jump');
+
+btnJump.onclick = () => {
+    // 1. "Lift" the pen (Save current line to history)
+    if (currentStroke.length > 0) {
+        history.push([...currentStroke]);
+    }
+
+    // 2. Teleport the pen
+    pen.x = parseFloat(inputX.value) || 0;
+    pen.y = parseFloat(inputY.value) || 0;
+
+    // 3. Start a fresh line at the new spot
+    currentStroke = [{ ...pen }];
+
+    // 4. Center Camera on the new spot so you don't get lost
+    camera.x = pen.x;
+    camera.y = pen.y;
+
+    render();
+};
+
 // 3. KEYBOARD SHORTCUTS (+ and -)
 window.addEventListener('keydown', (e) => {
     if (e.key === '=' || e.key === '+') { // Plus key
