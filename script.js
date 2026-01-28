@@ -82,22 +82,50 @@ function render() {
             ctx.lineTo(pt.x, pt.y);
         }
     });
-    ctx.stroke();
-
-    // E. DRAW SNAP CURSOR OR PEN
-    // If we are snapped, draw the Yellow Box
+    ctx.stroke()
+    
+    // E. DRAW SNAP CURSOR
     if (snap.active) {
         const s = toScreen(snap.x, snap.y);
         ctx.strokeStyle = '#FFFF00'; // Yellow
         ctx.lineWidth = 2;
-        ctx.strokeRect(s.x - 6, s.y - 6, 12, 12); // The Box
-        } else {
-        // Normal Pen
-        const p = toScreen(pen.x, pen.y);
-        ctx.fillStyle = '#d99e33';
+        
+        if (snap.type === 'END') {
+            ctx.strokeRect(s.x - 6, s.y - 6, 12, 12); // Square
+        } 
+        else if (snap.type === 'MID') {
+            // Triangle
+            ctx.beginPath();
+            ctx.moveTo(s.x, s.y - 8);
+            ctx.lineTo(s.x - 7, s.y + 6);
+            ctx.lineTo(s.x + 7, s.y + 6);
+            ctx.closePath();
+            ctx.stroke();
+        } 
+        else if (snap.type === 'PERP') {
+            // Perpendicular Symbol
+            ctx.beginPath();
+            ctx.moveTo(s.x - 6, s.y + 6);
+            ctx.lineTo(s.x + 6, s.y + 6); // Base
+            ctx.moveTo(s.x, s.y + 6);
+            ctx.lineTo(s.x, s.y - 6); // Vertical
+            ctx.stroke();
+        }
+    } 
+
+    // F. DRAW MEASURE LINE (Rubber Band)
+    if (measureMode && measureStart) {
+        const s = toScreen(measureStart.x, measureStart.y);
+        
+        // Find current mouse position (approximate based on snap or raw)
+        // (For simplicity in render, we just draw start point)
+        ctx.fillStyle = '#00FF00'; // Green
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, 4, 0, Math.PI*2);
         ctx.fill();
+        
+        // Note: Ideally we pass current mouse pos to render for the line
+        // but seeing the start point is usually enough context.
     }
 
     // F. HUD ELEMENTS
