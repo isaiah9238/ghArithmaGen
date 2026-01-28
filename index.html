@@ -76,6 +76,36 @@
             <label style="font-size: 0.8rem; align-self: center;">Dist:</label>
             <input type="number" id="input-dist" placeholder="Feet" value="100">
         </div>
+
+        <div class="card">
+        <strong>Area & Parcels</strong>
+        
+        <div style="display:flex; gap:5px; margin-top:5px;">
+            <button id="btn-toggle-fill" class="reset-btn" style="background:#444; font-size:0.7rem;">Fill: ON</button>
+            <button id="btn-add-parcel" class="action-btn" style="background: #27ae60; color: white; margin:0; font-size:0.7rem;">+ SAVE PARCEL</button>
+        </div>
+
+        <div style="border-top:1px solid #444; margin-top:5px; padding-top:5px;">
+            <div class="data-row">
+                <span style="color:#aaa; font-size:0.8rem;">Current:</span>
+                <span id="area-display" style="color:#f3e2a0; font-weight:bold;">0.00 Ac</span>
+            </div>
+        </div>
+
+        <div style="max-height: 100px; overflow-y: auto; margin-top:5px; border:1px solid #333; background:#111;">
+            <table style="width:100%; font-size:0.75rem; border-collapse:collapse;">
+                <thead style="background:#333; color:#aaa;">
+                    <tr>
+                        <th style="text-align:left; padding:2px;">ID</th>
+                        <th style="text-align:right; padding:2px;">Acres</th>
+                        <th style="text-align:right; padding:2px;">SqFt</th>
+                    </tr>
+                </thead>
+                <tbody id="parcel-list-body">
+                    </tbody>
+            </table>
+        </div>
+      </div>
         
         <div style="display:flex; gap:5px; margin-bottom:5px;">
              <button id="btn-turn-left" class="reset-btn" style="font-size:0.7rem;">Turn Left</button>
