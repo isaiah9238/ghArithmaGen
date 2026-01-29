@@ -761,5 +761,106 @@ if(inputScale) inputScale.onchange = render;
 if(inputColor) inputColor.oninput = () => { currentStroke.color = inputColor.value; };
 if(inputWidth) inputWidth.oninput = () => { currentStroke.width = parseInt(inputWidth.value); };
 
+// ==========================================
+// SAVE & LOAD SYSTEM
+// ==========================================
+const btnSave = document.getElementById('btn-save');
+const btnLoad = document.getElementById('btn-load');
+const fileInput = document.getElementById('file-input');
+
+// 1. SAVE JOB (Download JSON)
+if(btnSave) btnSave.onclick = () => {
+    // Pack all important data into one object
+    const jobData = {
+        version: "1.0",
+        date: new Date().toISOString(),
+        history: history,
+        // We also need to save the current parcels so they don't vanish!
+        parcels: parcels
+    };
+
+    // Convert to text
+    const jsonString = JSON.stringify(jobData, null, 2);
+    
+    // Create download link
+    const blob = new Blob([jsonString], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    link.download = `ArithmaJob_${date}.json`;
+    link.href = url;
+    link.click();
+};
+
+// 2. LOAD JOB (Trigger File Picker)
+if(btnLoad) btnLoad.onclick = () => {
+    fileInput.click(); // Clicks the hidden input
+};
+
+// 3. READ FILE (When user picks a file)
+if(fileInput) fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            
+            // Restore History
+            if (data.history) history = data.history;
+            
+            // Restore Parcels
+            if (data.parcels) {
+                parcels = data.parcels;
+                // Rebuild Parcel List UI
+                parcelListBody.innerHTML = ""; 
+                parcels.forEach(p => {
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = "1px solid #333";
+                    row.innerHTML = `<td style="padding:4px; color:#f3e2a0; font-weight:bold;">${p.id}</td><td style="padding:4px; text-align:right;">${p.acres.toFixed(3)}</td><td style="padding:4px; text-align:right; color:#888;">${Math.round(p.sqft)}</td>`;
+                    parcelListBody.appendChild(row);
+                });
+            }
+
+            // Reset current pen
+            currentStroke.points = [];
+            
+            // Move pen to end of last shape so you can keep drawing
+            if (history.length > 0) {
+                const lastShape = history[history.length - 1];
+                const pts = lastShape.points || lastShape;
+                const lastPt = pts[pts.length - 1];
+                pen.x = lastPt.x;
+                pen.y = lastPt.y;
+                currentStroke.points = [{...pen}];
+            } else {
+                pen = {x:0, y:0};
+                currentStroke.points = [{...pen}];
+            }
+            
+            // Auto-Zoom to fit the loaded job
+            if(btnFit) btnFit.click();
+            
+            // Update UI
+            if(inputX) inputX.value = pen.x.toFixed(2);
+            if(inputY) inputY.value = pen.y.toFixed(2);
+            render();
+            
+            alert("Job Loaded Successfully!");
+            
+        } catch (err) {
+            console.error(err);
+            alert("Error loading file. Is this a valid .json job file?");
+        }
+    };
+    
+    reader.readAsText(file);
+    // Clear input so you can load the same file again if needed
+    fileInput.value = ''; 
+};
+
 // INITIAL DRAW
 resize();
