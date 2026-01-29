@@ -10,36 +10,52 @@ const btnRecenter = document.getElementById('btn-recenter');
 const btnUndo = document.getElementById('btn-undo');
 const btnClose = document.getElementById('btn-close');
 
+// Drafting Styles
+const inputColor = document.getElementById('input-color');
+const inputWidth = document.getElementById('input-width');
+
+// Traverse
 const inputAz = document.getElementById('input-az');
 const inputDist = document.getElementById('input-dist');
 const btnTraverse = document.getElementById('btn-traverse');
 const btnTurnLeft = document.getElementById('btn-turn-left');
 const btnTurnRight = document.getElementById('btn-turn-right');
 
+// Offsets
+const inputOffsetDist = document.getElementById('input-offset-dist');
+const btnOffsetLeft = document.getElementById('btn-offset-left');
+const btnOffsetRight = document.getElementById('btn-offset-right');
+
+// Coords
 const inputX = document.getElementById('input-x');
 const inputY = document.getElementById('input-y');
 const btnGo = document.getElementById('btn-go');
 const btnJump = document.getElementById('btn-jump');
 
+// Curve
 const curveRadius = document.getElementById('curve-radius');
 const curveFacing = document.getElementById('curve-facing');
 const curveTurn = document.getElementById('curve-turn');
 const btnCurve = document.getElementById('btn-curve');
 
+// Snaps
 const snapEnd = document.getElementById('snap-end');
 const snapMid = document.getElementById('snap-mid');
-const snapCenter = document.getElementById('snap-center'); // NEW
+const snapCenter = document.getElementById('snap-center');
 const btnMeasure = document.getElementById('btn-measure');
 const measureOutput = document.getElementById('measure-output');
 
+// Area
 const btnToggleFill = document.getElementById('btn-toggle-fill');
 const btnAddParcel = document.getElementById('btn-add-parcel');
 const areaDisplay = document.getElementById('area-display');
 const parcelListBody = document.getElementById('parcel-list-body');
 
+// View
 const btnZoomIn = document.getElementById('btn-zoom-in');
 const btnZoomOut = document.getElementById('btn-zoom-out');
 const btnFit = document.getElementById('btn-fit');
+const btnPaperMode = document.getElementById('btn-paper-mode');
 const inputScale = document.getElementById('input-scale');
 const offsetDisplay = document.getElementById('offset-display');
 
@@ -49,15 +65,20 @@ const btnPdf = document.getElementById('btn-pdf');
 // ==========================================
 // 2. STATE
 // ==========================================
+// History now stores OBJECTS: { points: [], color: '#...', width: 2 }
 let history = []; 
-let currentStroke = []; 
+let currentStroke = { points: [], color: '#f3e2a0', width: 2 }; 
+
 let pen = { x: 0, y: 0 }; 
 let camera = { x: 0, y: 0, zoom: 5 };
 let snap = { active: false, x: 0, y: 0, type: '' }; 
+
 let parcels = []; 
 let showFill = true; 
 let measureMode = false;
 let measureStart = null; 
+let paperMode = false; // Toggle for White Background
+
 let isDragging = false;
 let lastX=0, lastY=0;
 
@@ -73,11 +94,19 @@ window.addEventListener('resize', resize);
 ctx.lineCap = 'round';
 ctx.lineJoin = 'round';
 
-currentStroke.push({ ...pen });
+// Initialize first stroke with default styles
+currentStroke.color = inputColor.value;
+currentStroke.width = parseInt(inputWidth.value);
+currentStroke.points.push({ ...pen });
 
 function render() {
-    // 1. Background Fill (for Export)
-    ctx.fillStyle = '#0f0f0f'; 
+    // 1. Background & Theme Colors
+    const bgColor = paperMode ? '#ffffff' : '#0f0f0f';
+    const gridColor = paperMode ? '#e0e0e0' : '#222';
+    const axisColor = paperMode ? '#888' : '#444';
+    const defaultLineColor = paperMode ? '#000000' : '#f3e2a0';
+
+    ctx.fillStyle = bgColor; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     if (inputScale) inputScale.value = camera.zoom.toFixed(1);
@@ -91,42 +120,58 @@ function render() {
     });
 
     // A. DRAW GRID
-    drawGrid(ctx, camera, cx, cy, canvas.width, canvas.height);
+    drawGrid(ctx, camera, cx, cy, canvas.width, canvas.height, gridColor, axisColor);
 
     // B. DRAW ORIGIN
     const origin = toScreen(0,0);
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+    ctx.strokeStyle = axisColor; ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(origin.x - 10, origin.y); ctx.lineTo(origin.x + 10, origin.y);
     ctx.moveTo(origin.x, origin.y - 10); ctx.lineTo(origin.x, origin.y + 10);
     ctx.stroke();
 
     // C. DRAW SKETCH
-    ctx.lineWidth = 2;
-    [...history, currentStroke].forEach(stroke => {
-        if (stroke.length < 2) return;
+    // We combine history and the current stroke for the loop
+    const allStrokes = [...history, currentStroke];
+
+    allStrokes.forEach(strokeObj => {
+        // Handle legacy data (if any) or new object structure
+        const points = strokeObj.points || strokeObj; // Fallback if simple array
+        if (points.length < 2) return;
+        
+        let strokeColor = strokeObj.color || defaultLineColor;
+        let strokeWidth = strokeObj.width || 2;
+
+        // If in Paper Mode, invert Gold to Black for high contrast
+        if (paperMode) {
+            // Simple inversion logic: if it looks like Gold/White, make it Black
+            if (strokeColor.toLowerCase().includes('f3e2a0') || strokeColor.toLowerCase() === '#ffffff') {
+                strokeColor = '#000000';
+            }
+        }
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth;
         
         ctx.beginPath();
-        const start = toScreen(stroke[0].x, stroke[0].y);
+        const start = toScreen(points[0].x, points[0].y);
         ctx.moveTo(start.x, start.y);
-        for (let i = 1; i < stroke.length; i++) {
-            const pt = toScreen(stroke[i].x, stroke[i].y);
+        for (let i = 1; i < points.length; i++) {
+            const pt = toScreen(points[i].x, points[i].y);
             ctx.lineTo(pt.x, pt.y);
         }
 
-        const first = stroke[0];
-        const last = stroke[stroke.length - 1];
+        // Check Closure
+        const first = points[0];
+        const last = points[points.length - 1];
         const isClosed = Math.abs(first.x - last.x) < 0.001 && Math.abs(first.y - last.y) < 0.001;
 
         if (isClosed) {
             if (showFill) {
-                ctx.fillStyle = 'rgba(243, 226, 160, 0.15)'; 
+                // Fill color logic
+                ctx.fillStyle = paperMode ? 'rgba(0,0,0,0.05)' : 'rgba(243, 226, 160, 0.15)'; 
                 ctx.fill();
             }
-            ctx.strokeStyle = '#f3e2a0'; 
-        } else {
-            ctx.strokeStyle = '#f3e2a0'; 
-            if (stroke === currentStroke) ctx.strokeStyle = '#fff';
         }
         ctx.stroke();
     });
@@ -134,26 +179,21 @@ function render() {
     // D. DRAW SNAP CURSOR
     if (snap.active) {
         const s = toScreen(snap.x, snap.y);
-        ctx.strokeStyle = '#FFFF00'; 
+        ctx.strokeStyle = paperMode ? '#FF0000' : '#FFFF00'; 
         ctx.lineWidth = 2;
         
-        if (snap.type === 'END') {
-            ctx.strokeRect(s.x - 6, s.y - 6, 12, 12);
-        } 
+        if (snap.type === 'END') ctx.strokeRect(s.x - 6, s.y - 6, 12, 12);
         else if (snap.type === 'MID') {
             ctx.beginPath(); ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x - 7, s.y + 6); ctx.lineTo(s.x + 7, s.y + 6); ctx.closePath(); ctx.stroke();
         } 
         else if (snap.type === 'CENTER') {
-            // Circle with Cross
-            ctx.beginPath(); 
-            ctx.arc(s.x, s.y, 6, 0, Math.PI * 2); 
+            ctx.beginPath(); ctx.arc(s.x, s.y, 6, 0, Math.PI * 2); 
             ctx.moveTo(s.x - 8, s.y); ctx.lineTo(s.x + 8, s.y); 
-            ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x, s.y + 8); 
-            ctx.stroke();
+            ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x, s.y + 8); ctx.stroke();
         }
     } else {
         const p = toScreen(pen.x, pen.y);
-        ctx.fillStyle = '#d99e33';
+        ctx.fillStyle = paperMode ? '#000' : '#d99e33';
         ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
     }
 
@@ -164,25 +204,22 @@ function render() {
     }
 
     // F. HUD
-    drawNorthArrow(ctx, canvas.width);
-    drawScaleBar(ctx, canvas.height, camera.zoom);
+    if (!paperMode) drawNorthArrow(ctx, canvas.width); // Hide HUD in paper mode for clean print? Or keep it? kept hidden for clean
+    drawScaleBar(ctx, canvas.height, camera.zoom, paperMode);
 
     // G. UPDATE DATA
     if(inputX) inputX.value = pen.x.toFixed(2);
     if(inputY) inputY.value = pen.y.toFixed(2);
-    const dist = Math.sqrt(pen.x**2 + pen.y**2);
-    if(offsetDisplay) offsetDisplay.innerText = `${dist.toFixed(2)}'`;
-    
     updateLiveArea();
 }
 
 // ==========================================
 // 4. HELPER FUNCTIONS
 // ==========================================
-function drawGrid(ctx, cam, cx, cy, w, h) {
+function drawGrid(ctx, cam, cx, cy, w, h, color, textColor) {
     const step = 10; const zoom = cam.zoom;
     if (step * zoom < 10) return; 
-    ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.fillStyle = '#444'; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.fillStyle = textColor; ctx.font = '10px monospace'; ctx.textAlign = 'center';
 
     const worldLeft = cam.x - (cx / zoom); const worldRight = cam.x + (cx / zoom);
     const worldTop = cam.y + (cy / zoom); const worldBottom = cam.y - (cy / zoom);
@@ -209,41 +246,161 @@ function drawNorthArrow(ctx, w) {
     ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('N', x, y - 25);
 }
 
-function drawScaleBar(ctx, h, zoom) {
+function drawScaleBar(ctx, h, zoom, isPaper) {
     const targetPx = 100; const worldUnits = targetPx / zoom;
     let scaleUnit = 10;
     if (worldUnits > 20) scaleUnit = 20; if (worldUnits > 50) scaleUnit = 50; if (worldUnits > 100) scaleUnit = 100;
     const barWidth = scaleUnit * zoom; const x = 20; const y = h - 30;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    const color = isPaper ? '#000' : '#fff';
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 5); ctx.lineTo(x + barWidth, y - 5); ctx.lineTo(x + barWidth, y); ctx.lineTo(x, y); ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.fillRect(x, y - 5, barWidth / 2, 5);
+    ctx.fillStyle = color; ctx.fillRect(x, y - 5, barWidth / 2, 5);
     ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.fillText(`Scale: ${scaleUnit} ft`, x, y - 10);
 }
 
-function getShapeArea(shape) {
-    if (!shape || shape.length < 3) return { sqft: 0, acres: 0 };
+function getShapeArea(points) {
+    if (!points || points.length < 3) return { sqft: 0, acres: 0 };
     let sum1 = 0, sum2 = 0;
-    for (let i = 0; i < shape.length - 1; i++) {
-        sum1 += shape[i].x * shape[i+1].y;
-        sum2 += shape[i].y * shape[i+1].x;
+    for (let i = 0; i < points.length - 1; i++) {
+        sum1 += points[i].x * points[i+1].y;
+        sum2 += points[i].y * points[i+1].x;
     }
-    const first = shape[0]; const last = shape[shape.length - 1];
+    const first = points[0]; const last = points[points.length - 1];
     if (first.x !== last.x || first.y !== last.y) { sum1 += last.x * first.y; sum2 += last.y * first.x; }
     const sqft = Math.abs(0.5 * (sum1 - sum2));
     return { sqft: sqft, acres: sqft / 43560 };
 }
 
 function updateLiveArea() {
-    let target = currentStroke.length > 2 ? currentStroke : (history.length > 0 ? history[history.length-1] : null);
+    let target = null;
+    if (currentStroke.points.length > 2) target = currentStroke.points;
+    else if (history.length > 0) target = history[history.length-1].points;
+    
     if(target && areaDisplay) {
         const a = getShapeArea(target);
         areaDisplay.innerText = `${a.acres.toFixed(3)} Ac`;
     }
 }
 
+// Helper: Push current stroke to history and start new one
+function saveStroke() {
+    if (currentStroke.points.length > 0) {
+        // Save copy of points and current styles
+        history.push({
+            points: [...currentStroke.points],
+            color: currentStroke.color,
+            width: currentStroke.width
+        });
+    }
+    // Start fresh
+    currentStroke.points = [{ ...pen }];
+    // Keep styles same as inputs
+    currentStroke.color = inputColor.value;
+    currentStroke.width = parseInt(inputWidth.value);
+}
+
 // ==========================================
 // 5. CONTROLS & EVENTS
 // ==========================================
+
+// --- OFFSET TOOL ---
+function createOffset(distance, side) { // side: -1 (Left), 1 (Right)
+    let target = null;
+    if (currentStroke.points.length > 1) target = currentStroke.points;
+    else if (history.length > 0) target = history[history.length - 1].points;
+
+    if (!target || target.length < 2) { alert("Draw a line to offset first."); return; }
+
+    // Simple Offset: Move points along perpendicular of segment
+    // Note: Complex polygon offsetting is hard. We will do segment-based offset.
+    const newPoints = [];
+    
+    for(let i=0; i<target.length-1; i++) {
+        const p1 = target[i];
+        const p2 = target[i+1];
+        
+        // Direction vector
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        
+        // Perpendicular vector (-dy, dx) is 90 deg left
+        // Normalize and scale
+        const udx = dx / len;
+        const udy = dy / len;
+        
+        // Normal vector (90 deg)
+        // Left (-dy, dx), Right (dy, -dx)
+        let nx, ny;
+        if (side === -1) { nx = -udy; ny = udx; } // Left
+        else { nx = udy; ny = -udx; } // Right
+
+        const offX = nx * distance;
+        const offY = ny * distance;
+
+        // Offset Start and End of this segment
+        // (For continuous lines, we should intersect, but for now we draw separate segments or disconnected)
+        // Better Approach: Just offset the points directly? No.
+        // Let's create a disconnected parallel line for now to avoid corner math complexity
+        
+        // Simple shift:
+        newPoints.push({ x: p1.x + offX, y: p1.y + offY });
+        newPoints.push({ x: p2.x + offX, y: p2.y + offY });
+        
+        // Lift pen between segments if we don't do intersection logic
+        // But users want a continuous line. 
+        // Let's just push start and end. 
+    }
+    
+    // Create a new stroke from these points. 
+    // To make it a single connected line, we need to handle corners. 
+    // Simplified: Just take the offset of the first point of segment.
+    
+    const simpleOffsetPoints = [];
+    // Iterate points (vertex normal approx)
+    for(let i=0; i<target.length; i++) {
+        // Find segment before and after
+        // This is complex math. Let's do the simplest useful thing:
+        // Offset the whole shape by a fixed X/Y? No.
+        
+        // Let's just offset the last segment for now if it's a line
+        // Or if it's a shape, offset perpendicular to the first segment?
+        
+        // Let's stick to the Perpendicular of each segment.
+        // We will create a new stroke for EACH segment to ensure accuracy.
+    }
+    
+    // REVISED OFFSET: Just offset the segments as separate lines for accuracy
+    // User can connect them if needed.
+    target.forEach((pt, i) => {
+        if (i === target.length - 1) return;
+        const p1 = pt;
+        const p2 = target[i+1];
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        let nx, ny;
+        if (side === -1) { nx = -dy/len; ny = dx/len; }
+        else { nx = dy/len; ny = -dx/len; }
+        
+        const offX = nx * distance;
+        const offY = ny * distance;
+        
+        const np1 = { x: p1.x + offX, y: p1.y + offY };
+        const np2 = { x: p2.x + offX, y: p2.y + offY };
+        
+        history.push({
+            points: [np1, np2],
+            color: '#888888', // Grey for offsets
+            width: 1
+        });
+    });
+    render();
+}
+
+btnOffsetLeft.onclick = () => createOffset(parseFloat(inputOffsetDist.value), -1);
+btnOffsetRight.onclick = () => createOffset(parseFloat(inputOffsetDist.value), 1);
+
 
 // --- MOUSE WHEEL ZOOM ---
 canvas.addEventListener('wheel', (e) => {
@@ -283,14 +440,18 @@ canvas.addEventListener('mousedown', (e) => {
         render(); return; 
     }
 
-    if (snap.active) { pen.x = snap.x; pen.y = snap.y; currentStroke.push({ ...pen }); render(); return; }
+    if (snap.active) { 
+        pen.x = snap.x; pen.y = snap.y; 
+        currentStroke.points.push({ ...pen }); 
+        render(); return; 
+    }
 
     isDragging = true; lastX = e.clientX; lastY = e.clientY; canvas.style.cursor = 'grabbing';
 });
 
 window.addEventListener('mouseup', () => { isDragging = false; if(!measureMode) canvas.style.cursor = 'crosshair'; });
 
-// --- MOUSE MOVE (UPDATED WITH CENTER SNAP) ---
+// --- MOUSE MOVE ---
 canvas.addEventListener('mousemove', (e) => {
     if (isDragging) {
         const dx = e.clientX - lastX; const dy = e.clientY - lastY;
@@ -304,24 +465,23 @@ canvas.addEventListener('mousemove', (e) => {
     const worldX = (mousePxX - cx) / camera.zoom + camera.x;
     const worldY = camera.y - (mousePxY - cy) / camera.zoom; 
 
-    // Snapping
+    // Snapping Logic
     let bestDist = Infinity; let bestPt = null; let bestType = "";
     const snapWorldThreshold = 15 / camera.zoom;
     const distSq = (x1, y1, x2, y2) => (x1-x2)**2 + (y1-y2)**2;
 
-    [...history, currentStroke].forEach(stroke => {
-        if (stroke.length < 2) return; 
+    [...history, currentStroke].forEach(strokeObj => {
+        const points = strokeObj.points || strokeObj; 
+        if (points.length < 2) return; 
         
-        for (let i = 0; i < stroke.length; i++) {
-            const p1 = stroke[i];
-            // ENDPOINT
+        for (let i = 0; i < points.length; i++) {
+            const p1 = points[i];
             if (snapEnd.checked) {
                 const d = distSq(p1.x, p1.y, worldX, worldY);
                 if (d < bestDist) { bestDist = d; bestPt = { x: p1.x, y: p1.y }; bestType = "END"; }
             }
-            // MIDPOINT
-            if (i < stroke.length - 1) {
-                const p2 = stroke[i+1];
+            if (i < points.length - 1) {
+                const p2 = points[i+1];
                 if (snapMid.checked) {
                     const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2;
                     const d = distSq(mx, my, worldX, worldY);
@@ -329,12 +489,11 @@ canvas.addEventListener('mousemove', (e) => {
                 }
             }
         }
-
-        // CENTER SNAP (Geometry)
-        if (snapCenter && snapCenter.checked && stroke.length > 2) {
-            const p1 = stroke[0];
-            const p2 = stroke[Math.floor(stroke.length / 2)];
-            const p3 = stroke[stroke.length - 1];
+        // Center Snap
+        if (snapCenter && snapCenter.checked && points.length > 2) {
+            const p1 = points[0];
+            const p2 = points[Math.floor(points.length / 2)];
+            const p3 = points[points.length - 1];
             const D = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
             if (Math.abs(D) > 0.001) {
                 const Ux = ((p1.x**2 + p1.y**2) * (p2.y - p3.y) + (p2.x**2 + p2.y**2) * (p3.y - p1.y) + (p3.x**2 + p3.y**2) * (p1.y - p2.y)) / D;
@@ -364,30 +523,46 @@ window.addEventListener('keydown', (e) => {
     const step = 1; let dx = 0, dy = 0;
     if (e.key === 'ArrowUp') dy = step; if (e.key === 'ArrowDown') dy = -step;
     if (e.key === 'ArrowLeft') dx = -step; if (e.key === 'ArrowRight') dx = step;
-    if (dx !== 0 || dy !== 0) { pen.x += dx; pen.y += dy; currentStroke.push({ ...pen }); render(); }
-    
-    if (e.key === ' ') { 
-        if (currentStroke.length > 0) history.push([...currentStroke]);
-        currentStroke = [{ ...pen }]; render();
+    if (dx !== 0 || dy !== 0) { 
+        pen.x += dx; pen.y += dy; 
+        currentStroke.points.push({ ...pen }); 
+        render(); 
     }
+    
+    if (e.key === ' ') { saveStroke(); render(); }
 });
 
-// --- BUTTON ACTIONS ---
-if(btnReset) btnReset.onclick = () => { if(confirm("Start a New Job?")) { history = []; currentStroke = []; pen = {x:0, y:0}; camera = {x:0, y:0, zoom:5}; currentStroke.push({...pen}); render(); }};
+// --- BUTTONS ---
+if(btnReset) btnReset.onclick = () => { if(confirm("Start a New Job?")) { history = []; currentStroke.points = []; pen = {x:0, y:0}; camera = {x:0, y:0, zoom:5}; currentStroke.points.push({...pen}); render(); }};
 if(btnRecenter) btnRecenter.onclick = () => { camera.x = pen.x; camera.y = pen.y; render(); };
-if(btnGo) btnGo.onclick = () => { pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke.push({ ...pen }); render(); };
-if(btnJump) btnJump.onclick = () => { if (currentStroke.length > 0) history.push([...currentStroke]); pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke = [{ ...pen }]; camera.x = pen.x; camera.y = pen.y; render(); };
+if(btnGo) btnGo.onclick = () => { pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke.points.push({ ...pen }); render(); };
+if(btnJump) btnJump.onclick = () => { 
+    saveStroke();
+    pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); 
+    currentStroke.points = [{ ...pen }]; 
+    camera.x = pen.x; camera.y = pen.y; render(); 
+};
 
 if(btnUndo) btnUndo.onclick = () => {
-    if (currentStroke.length > 1) { currentStroke.pop(); const prev = currentStroke[currentStroke.length - 1]; pen.x = prev.x; pen.y = prev.y; }
-    else if (history.length > 0) { currentStroke = history.pop(); const prev = currentStroke[currentStroke.length - 1]; pen.x = prev.x; pen.y = prev.y; }
+    if (currentStroke.points.length > 1) { 
+        currentStroke.points.pop(); 
+        const prev = currentStroke.points[currentStroke.points.length - 1]; 
+        pen.x = prev.x; pen.y = prev.y; 
+    } else if (history.length > 0) { 
+        // Restore previous stroke
+        const last = history.pop();
+        currentStroke = last;
+        const prev = currentStroke.points[currentStroke.points.length - 1]; 
+        pen.x = prev.x; pen.y = prev.y; 
+    }
     render();
 };
 
 if(btnClose) btnClose.onclick = () => {
-    if (currentStroke.length < 2) { alert("Draw a shape first!"); return; }
-    const startPt = currentStroke[0]; pen.x = startPt.x; pen.y = startPt.y;
-    currentStroke.push({ ...pen }); history.push([...currentStroke]); currentStroke = [{ ...pen }];
+    if (currentStroke.points.length < 2) { alert("Draw a shape first!"); return; }
+    const startPt = currentStroke.points[0]; pen.x = startPt.x; pen.y = startPt.y;
+    currentStroke.points.push({ ...pen }); 
+    saveStroke();
     if(inputX) inputX.value = pen.x.toFixed(2); if(inputY) inputY.value = pen.y.toFixed(2); render();
 };
 
@@ -395,7 +570,7 @@ if(btnTraverse) btnTraverse.onclick = () => {
     const az = parseFloat(inputAz.value) || 0; const dist = parseFloat(inputDist.value) || 0;
     const rad = (az * Math.PI) / 180;
     pen.x += dist * Math.sin(rad); pen.y += dist * Math.cos(rad);
-    currentStroke.push({ ...pen }); 
+    currentStroke.points.push({ ...pen }); 
     if(inputX) inputX.value = pen.x.toFixed(2); if(inputY) inputY.value = pen.y.toFixed(2);
     camera.x = pen.x; camera.y = pen.y; render();
 };
@@ -403,40 +578,36 @@ if(btnTraverse) btnTraverse.onclick = () => {
 if(btnTurnLeft) btnTurnLeft.onclick = () => { inputAz.value = (parseFloat(inputAz.value) - 90 + 360) % 360; };
 if(btnTurnRight) btnTurnRight.onclick = () => { inputAz.value = (parseFloat(inputAz.value) + 90) % 360; };
 
-// --- CURVE (TANGENT + MANUAL) ---
 if(btnCurve) btnCurve.onclick = () => {
     const R = parseFloat(curveRadius.value);
     const facing = curveFacing.value; const turn = curveTurn.value;
     let startAngle = 0;
-
     if (facing === 'Tangent') {
         let prev = null;
-        if (currentStroke.length > 1) { prev = currentStroke[currentStroke.length - 2]; } 
+        if (currentStroke.points.length > 1) { prev = currentStroke.points[currentStroke.points.length - 2]; } 
         else if (history.length > 0) {
-            const lastShape = history[history.length - 1];
+            const lastShape = history[history.length - 1].points;
             const lastPt = lastShape[lastShape.length - 1];
             if (pen.x === lastPt.x && pen.y === lastPt.y) { prev = lastShape[lastShape.length - 2]; }
         }
         if (prev) { startAngle = Math.atan2(pen.y - prev.y, pen.x - prev.x); } 
-        else { alert("No previous line to attach to! Use manual direction."); return; }
+        else { alert("No previous line to attach to!"); return; }
     } else {
         if (facing === 'N') startAngle = Math.PI / 2;
         if (facing === 'W') startAngle = Math.PI;
         if (facing === 'S') startAngle = -Math.PI / 2;
         if (facing === 'E') startAngle = 0;
     }
-
     const isLeft = (turn === 'Left');
     const sweep = isLeft ? (Math.PI / 2) : -(Math.PI / 2);
     const centerAngle = startAngle + (isLeft ? (Math.PI / 2) : -(Math.PI / 2));
     const centerX = pen.x + R * Math.cos(centerAngle);
     const centerY = pen.y + R * Math.sin(centerAngle);
     const steps = 20; let currentTheta = centerAngle + Math.PI;
-
     for (let i = 1; i <= steps; i++) {
         const t = i / steps; const angle = currentTheta + (sweep * t);
         pen.x = centerX + R * Math.cos(angle); pen.y = centerY + R * Math.sin(angle);
-        currentStroke.push({ ...pen });
+        currentStroke.points.push({ ...pen });
     }
     if(inputX) inputX.value = pen.x.toFixed(2); if(inputY) inputY.value = pen.y.toFixed(2);
     render(); canvas.focus();
@@ -459,11 +630,11 @@ if(btnToggleFill) btnToggleFill.onclick = () => {
 };
 
 if(btnAddParcel) btnAddParcel.onclick = () => {
-    let targetShape = null;
-    if (currentStroke.length > 2) targetShape = currentStroke; 
-    else if (history.length > 0) targetShape = history[history.length - 1];
-    if (!targetShape) { alert("Draw a shape first!"); return; }
-    const area = getShapeArea(targetShape);
+    let target = null;
+    if (currentStroke.points.length > 2) target = currentStroke.points; 
+    else if (history.length > 0) target = history[history.length - 1].points;
+    if (!target) { alert("Draw a shape first!"); return; }
+    const area = getShapeArea(target);
     const parcelID = String.fromCharCode(65 + parcels.length); 
     parcels.push({ id: parcelID, acres: area.acres, sqft: area.sqft });
     parcelListBody.innerHTML = ""; 
@@ -478,13 +649,25 @@ if(btnAddParcel) btnAddParcel.onclick = () => {
 if(btnZoomIn) btnZoomIn.onclick = () => { camera.zoom *= 1.2; render(); };
 if(btnZoomOut) btnZoomOut.onclick = () => { camera.zoom /= 1.2; if (camera.zoom < 0.5) camera.zoom = 0.5; render(); };
 if(btnFit) btnFit.onclick = () => {
-    if (history.length === 0 && currentStroke.length <= 1) { camera = { x: 0, y: 0, zoom: 5 }; render(); return; }
+    if (history.length === 0 && currentStroke.points.length <= 1) { camera = { x: 0, y: 0, zoom: 5 }; render(); return; }
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    [...history, currentStroke].forEach(stroke => stroke.forEach(pt => { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; }));
+    [...history, currentStroke].forEach(strokeObj => {
+        const pts = strokeObj.points || strokeObj;
+        pts.forEach(pt => { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; });
+    });
     const centerX = (minX + maxX) / 2; const centerY = (minY + maxY) / 2;
     const width = maxX - minX; const height = maxY - minY;
     const zoomX = canvas.width / (width * 1.2); const zoomY = canvas.height / (height * 1.2);
     camera.x = centerX; camera.y = centerY; camera.zoom = Math.min(zoomX, zoomY, 50); render();
+};
+
+// Paper Mode Toggle
+if(btnPaperMode) btnPaperMode.onclick = () => {
+    paperMode = !paperMode;
+    btnPaperMode.innerText = paperMode ? "Dark Mode" : "Paper Mode";
+    btnPaperMode.style.background = paperMode ? "#333" : "#eee";
+    btnPaperMode.style.color = paperMode ? "#fff" : "#000";
+    render();
 };
 
 if(btnPng) btnPng.onclick = () => {
@@ -509,6 +692,10 @@ if(btnPdf) btnPdf.onclick = () => {
 };
 
 if(inputScale) inputScale.onchange = render;
+
+// Inputs update current styles
+if(inputColor) inputColor.oninput = () => { currentStroke.color = inputColor.value; };
+if(inputWidth) inputWidth.oninput = () => { currentStroke.width = parseInt(inputWidth.value); };
 
 // INITIAL DRAW
 resize();
