@@ -18,16 +18,24 @@
             <button id="btn-reset" class="reset-btn" style="background: #444; border: 1px solid #666;">New Job</button>
             <button id="btn-recenter" class="reset-btn" style="background: #444; border: 1px solid #666;">Find Pen</button>
         </div>
+        
         <div style="display: flex; gap: 5px; margin-top: 5px;">
+            <button id="btn-save" class="action-btn" style="background: #27ae60; margin:0; font-size:0.8rem;">SAVE JOB</button>
+            <button id="btn-load" class="action-btn" style="background: #8e44ad; margin:0; font-size:0.8rem;">LOAD JOB</button>
+            <input type="file" id="file-input" accept=".json" style="display: none;">
+        </div>
+
+        <div style="display: flex; gap: 5px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
             <button id="btn-undo" class="reset-btn" style="background: #555; border: 1px solid #666;">Undo</button>
             <button id="btn-close" class="reset-btn" style="background: #d99e33; color:black; border: none; font-weight:bold;">Close Loop</button>
         </div>
+        
         <div style="display: flex; gap: 5px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
             <button id="btn-png" class="action-btn" style="background: #2980b9; margin:0; font-size:0.75rem;">IMG</button>
             <button id="btn-pdf" class="action-btn" style="background: #c0392b; margin:0; font-size:0.75rem;">PDF</button>
         </div>
       </div>
-
+      
       <div class="card">
         <strong>Drafting Styles</strong>
         <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
