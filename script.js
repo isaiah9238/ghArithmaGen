@@ -85,8 +85,11 @@ ctx.lineJoin = 'round';
 currentStroke.push({ ...pen });
 
 function render() {
+    // Clear Screen
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    inputScale.value = camera.zoom.toFixed(1);
+    
+    // Update Zoom Input safely
+    if (inputScale) inputScale.value = camera.zoom.toFixed(1);
     
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
@@ -121,6 +124,7 @@ function render() {
             ctx.lineTo(pt.x, pt.y);
         }
 
+        // Check Closure
         const first = stroke[0];
         const last = stroke[stroke.length - 1];
         const isClosed = Math.abs(first.x - last.x) < 0.001 && Math.abs(first.y - last.y) < 0.001;
@@ -168,10 +172,10 @@ function render() {
     drawScaleBar(ctx, canvas.height, camera.zoom);
 
     // G. UPDATE DATA
-    inputX.value = pen.x.toFixed(2);
-    inputY.value = pen.y.toFixed(2);
+    if(inputX) inputX.value = pen.x.toFixed(2);
+    if(inputY) inputY.value = pen.y.toFixed(2);
     const dist = Math.sqrt(pen.x**2 + pen.y**2);
-    offsetDisplay.innerText = `${dist.toFixed(2)}'`;
+    if(offsetDisplay) offsetDisplay.innerText = `${dist.toFixed(2)}'`;
     
     updateLiveArea();
 }
@@ -235,9 +239,9 @@ function getShapeArea(shape) {
 
 function updateLiveArea() {
     let target = currentStroke.length > 2 ? currentStroke : (history.length > 0 ? history[history.length-1] : null);
-    if(target) {
+    if(target && areaDisplay) {
         const a = getShapeArea(target);
-        if(areaDisplay) areaDisplay.innerText = `${a.acres.toFixed(3)} Ac`;
+        areaDisplay.innerText = `${a.acres.toFixed(3)} Ac`;
     }
 }
 
@@ -368,25 +372,25 @@ window.addEventListener('keydown', (e) => {
 });
 
 // --- BUTTON ACTIONS ---
-btnReset.onclick = () => { if(confirm("Start a New Job?")) { history = []; currentStroke = []; pen = {x:0, y:0}; camera = {x:0, y:0, zoom:5}; currentStroke.push({...pen}); render(); }};
-btnRecenter.onclick = () => { camera.x = pen.x; camera.y = pen.y; render(); };
-btnGo.onclick = () => { pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke.push({ ...pen }); render(); };
-btnJump.onclick = () => { if (currentStroke.length > 0) history.push([...currentStroke]); pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke = [{ ...pen }]; camera.x = pen.x; camera.y = pen.y; render(); };
+if(btnReset) btnReset.onclick = () => { if(confirm("Start a New Job?")) { history = []; currentStroke = []; pen = {x:0, y:0}; camera = {x:0, y:0, zoom:5}; currentStroke.push({...pen}); render(); }};
+if(btnRecenter) btnRecenter.onclick = () => { camera.x = pen.x; camera.y = pen.y; render(); };
+if(btnGo) btnGo.onclick = () => { pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke.push({ ...pen }); render(); };
+if(btnJump) btnJump.onclick = () => { if (currentStroke.length > 0) history.push([...currentStroke]); pen.x = parseFloat(inputX.value); pen.y = parseFloat(inputY.value); currentStroke = [{ ...pen }]; camera.x = pen.x; camera.y = pen.y; render(); };
 
-btnUndo.onclick = () => {
+if(btnUndo) btnUndo.onclick = () => {
     if (currentStroke.length > 1) { currentStroke.pop(); const prev = currentStroke[currentStroke.length - 1]; pen.x = prev.x; pen.y = prev.y; }
     else if (history.length > 0) { currentStroke = history.pop(); const prev = currentStroke[currentStroke.length - 1]; pen.x = prev.x; pen.y = prev.y; }
     render();
 };
 
-btnClose.onclick = () => {
+if(btnClose) btnClose.onclick = () => {
     if (currentStroke.length < 2) { alert("Draw a shape first!"); return; }
     const startPt = currentStroke[0]; pen.x = startPt.x; pen.y = startPt.y;
     currentStroke.push({ ...pen }); history.push([...currentStroke]); currentStroke = [{ ...pen }];
     inputX.value = pen.x.toFixed(2); inputY.value = pen.y.toFixed(2); render();
 };
 
-btnTraverse.onclick = () => {
+if(btnTraverse) btnTraverse.onclick = () => {
     const az = parseFloat(inputAz.value) || 0; const dist = parseFloat(inputDist.value) || 0;
     const rad = (az * Math.PI) / 180;
     pen.x += dist * Math.sin(rad); pen.y += dist * Math.cos(rad);
@@ -394,10 +398,10 @@ btnTraverse.onclick = () => {
     camera.x = pen.x; camera.y = pen.y; render();
 };
 
-btnTurnLeft.onclick = () => { inputAz.value = (parseFloat(inputAz.value) - 90 + 360) % 360; };
-btnTurnRight.onclick = () => { inputAz.value = (parseFloat(inputAz.value) + 90) % 360; };
+if(btnTurnLeft) btnTurnLeft.onclick = () => { inputAz.value = (parseFloat(inputAz.value) - 90 + 360) % 360; };
+if(btnTurnRight) btnTurnRight.onclick = () => { inputAz.value = (parseFloat(inputAz.value) + 90) % 360; };
 
-btnCurve.onclick = () => {
+if(btnCurve) btnCurve.onclick = () => {
     const R = parseFloat(curveRadius.value); const facing = curveFacing.value; const turn = curveTurn.value;
     let startAngle = 0;
     if (facing === 'N') startAngle = Math.PI / 2; if (facing === 'W') startAngle = Math.PI;
@@ -414,8 +418,7 @@ btnCurve.onclick = () => {
     render(); canvas.focus();
 };
 
-// Parcel & Measure Toggles
-btnMeasure.onclick = () => {
+if(btnMeasure) btnMeasure.onclick = () => {
     measureMode = !measureMode; measureStart = null;
     btnMeasure.innerText = measureMode ? "RULER: ON" : "RULER: OFF";
     btnMeasure.style.background = measureMode ? "#f3e2a0" : "#333";
@@ -424,14 +427,14 @@ btnMeasure.onclick = () => {
     canvas.style.cursor = measureMode ? 'help' : 'crosshair'; render();
 };
 
-btnToggleFill.onclick = () => {
+if(btnToggleFill) btnToggleFill.onclick = () => {
     showFill = !showFill;
     btnToggleFill.innerText = showFill ? "Fill: ON" : "Fill: OFF";
     btnToggleFill.style.color = showFill ? "#fff" : "#777";
     render();
 };
 
-btnAddParcel.onclick = () => {
+if(btnAddParcel) btnAddParcel.onclick = () => {
     let targetShape = null;
     if (currentStroke.length > 2) targetShape = currentStroke; 
     else if (history.length > 0) targetShape = history[history.length - 1];
@@ -451,9 +454,9 @@ btnAddParcel.onclick = () => {
     });
 };
 
-btnZoomIn.onclick = () => { camera.zoom *= 1.2; render(); };
-btnZoomOut.onclick = () => { camera.zoom /= 1.2; if (camera.zoom < 0.5) camera.zoom = 0.5; render(); };
-btnFit.onclick = () => {
+if(btnZoomIn) btnZoomIn.onclick = () => { camera.zoom *= 1.2; render(); };
+if(btnZoomOut) btnZoomOut.onclick = () => { camera.zoom /= 1.2; if (camera.zoom < 0.5) camera.zoom = 0.5; render(); };
+if(btnFit) btnFit.onclick = () => {
     if (history.length === 0 && currentStroke.length <= 1) { camera = { x: 0, y: 0, zoom: 5 }; render(); return; }
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     [...history, currentStroke].forEach(stroke => stroke.forEach(pt => { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; }));
@@ -463,7 +466,7 @@ btnFit.onclick = () => {
     camera.x = centerX; camera.y = centerY; camera.zoom = Math.min(zoomX, zoomY, 50); render();
 };
 
-inputScale.onchange = render;
+if(inputScale) inputScale.onchange = render;
 
 // INITIAL DRAW
 resize();
