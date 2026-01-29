@@ -402,21 +402,80 @@ if(btnTraverse) btnTraverse.onclick = () => {
 if(btnTurnLeft) btnTurnLeft.onclick = () => { inputAz.value = (parseFloat(inputAz.value) - 90 + 360) % 360; };
 if(btnTurnRight) btnTurnRight.onclick = () => { inputAz.value = (parseFloat(inputAz.value) + 90) % 360; };
 
+// ==========================================
+// CURVE TOOL (Updated with Tangent Logic)
+// ==========================================
 if(btnCurve) btnCurve.onclick = () => {
-    const R = parseFloat(curveRadius.value); const facing = curveFacing.value; const turn = curveTurn.value;
+    const R = parseFloat(curveRadius.value);
+    const facing = curveFacing.value; 
+    const turn = curveTurn.value;
+    
     let startAngle = 0;
-    if (facing === 'N') startAngle = Math.PI / 2; if (facing === 'W') startAngle = Math.PI;
-    if (facing === 'S') startAngle = -Math.PI / 2; if (facing === 'E') startAngle = 0;
-    const isLeft = (turn === 'Left'); const sweep = isLeft ? (Math.PI / 2) : -(Math.PI / 2);
+
+    // 1. DETERMINE STARTING DIRECTION
+    if (facing === 'Tangent') {
+        // We need a previous point to know which way we are walking
+        let prev = null;
+        
+        // Case A: We are in the middle of drawing a line
+        if (currentStroke.length > 1) {
+            prev = currentStroke[currentStroke.length - 2];
+        } 
+        // Case B: We just finished a line and haven't moved the pen
+        else if (history.length > 0) {
+            const lastShape = history[history.length - 1];
+            const lastPt = lastShape[lastShape.length - 1];
+            // Verify pen is still at the end of that line
+            if (pen.x === lastPt.x && pen.y === lastPt.y) {
+                prev = lastShape[lastShape.length - 2];
+            }
+        }
+
+        if (prev) {
+            // Calculate exact angle of the line we just drew
+            // Math.atan2(dy, dx) gives us the direction
+            startAngle = Math.atan2(pen.y - prev.y, pen.x - prev.x);
+        } else {
+            alert("No previous line to attach to! Select a manual direction (N, S, E, W).");
+            return;
+        }
+    } else {
+        // Manual Override (Old Logic)
+        if (facing === 'N') startAngle = Math.PI / 2;
+        if (facing === 'W') startAngle = Math.PI;
+        if (facing === 'S') startAngle = -Math.PI / 2;
+        if (facing === 'E') startAngle = 0;
+    }
+
+    // 2. CALCULATE GEOMETRY
+    const isLeft = (turn === 'Left');
+    const sweep = isLeft ? (Math.PI / 2) : -(Math.PI / 2);
+    
+    // The Center is 90 degrees perpendicular to our path
     const centerAngle = startAngle + (isLeft ? (Math.PI / 2) : -(Math.PI / 2));
-    const centerX = pen.x + R * Math.cos(centerAngle); const centerY = pen.y + R * Math.sin(centerAngle);
-    const steps = 20; let currentTheta = centerAngle + Math.PI;
+    
+    const centerX = pen.x + R * Math.cos(centerAngle);
+    const centerY = pen.y + R * Math.sin(centerAngle);
+
+    // 3. DRAW THE ARC
+    const steps = 20; 
+    let currentTheta = centerAngle + Math.PI;
+
     for (let i = 1; i <= steps; i++) {
-        const t = i / steps; const angle = currentTheta + (sweep * t);
-        pen.x = centerX + R * Math.cos(angle); pen.y = centerY + R * Math.sin(angle);
+        const t = i / steps;
+        const angle = currentTheta + (sweep * t);
+        
+        pen.x = centerX + R * Math.cos(angle);
+        pen.y = centerY + R * Math.sin(angle);
+        
         currentStroke.push({ ...pen });
     }
-    render(); canvas.focus();
+    
+    if(inputX) inputX.value = pen.x.toFixed(2);
+    if(inputY) inputY.value = pen.y.toFixed(2);
+    
+    render();
+    canvas.focus();
 };
 
 if(btnMeasure) btnMeasure.onclick = () => {
