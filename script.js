@@ -396,18 +396,15 @@ function createOffset(distance, side) { // side: -1 (Left), 1 (Right)
         });
     });
     render();
+} // <--- THIS WAS MISSING! This closes the createOffset function.
 
-    // ==========================================
+// ==========================================
 // FILLET / JOIN TOOL
 // ==========================================
 const btnFillet = document.getElementById('btn-fillet');
 
 if (btnFillet) btnFillet.onclick = () => {
     // 1. Identify the last two shapes
-    // We need at least 2 shapes in history to join them
-    // Note: currentStroke counts as one if it has points
-    
-    // Let's gather all completed shapes
     let shapes = [...history];
     if (currentStroke.points.length > 0) shapes.push(currentStroke);
     
@@ -417,30 +414,26 @@ if (btnFillet) btnFillet.onclick = () => {
     }
 
     // Get the last two strokes
-    const strokeB = shapes[shapes.length - 1]; // The most recent one
-    const strokeA = shapes[shapes.length - 2]; // The one before it
+    const strokeB = shapes[shapes.length - 1]; 
+    const strokeA = shapes[shapes.length - 2]; 
     
-    // Get their points
     const ptsA = strokeA.points || strokeA;
     const ptsB = strokeB.points || strokeB;
     
-    // We join the END of A to the START of B
-    // So we need:
-    // Line A: Defined by its last two points
-    const a2 = ptsA[ptsA.length - 1]; // End of A
-    const a1 = ptsA[ptsA.length - 2]; // Point before end of A
+    // Line A (Last 2 points)
+    const a2 = ptsA[ptsA.length - 1]; 
+    const a1 = ptsA[ptsA.length - 2]; 
     
-    // Line B: Defined by its first two points
-    const b1 = ptsB[0];     // Start of B
-    const b2 = ptsB[1];     // Point after start of B
+    // Line B (First 2 points)
+    const b1 = ptsB[0];     
+    const b2 = ptsB[1];     
     
     if (!a1 || !a2 || !b1 || !b2) {
-        alert("Cannot join these shapes (not enough points).");
+        alert("Cannot join these shapes.");
         return;
     }
 
-    // 2. Calculate Intersection (Infinite Line Math)
-    // Formula: Determinant method
+    // 2. Calculate Intersection
     const x1 = a1.x, y1 = a1.y;
     const x2 = a2.x, y2 = a2.y;
     const x3 = b1.x, y3 = b1.y;
@@ -457,25 +450,18 @@ if (btnFillet) btnFillet.onclick = () => {
     const intersectY = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) / denom;
 
     // 3. Update the Points
-    // Move End of A to Intersection
-    a2.x = intersectX;
-    a2.y = intersectY;
-    
-    // Move Start of B to Intersection
-    b1.x = intersectX;
-    b1.y = intersectY;
+    a2.x = intersectX; a2.y = intersectY;
+    b1.x = intersectX; b1.y = intersectY;
 
-    // 4. Update the Pen (so next line starts from this new corner)
-    pen.x = intersectX;
-    pen.y = intersectY;
-    
-    // Also update UI
+    // 4. Update the Pen
+    pen.x = intersectX; pen.y = intersectY;
     if(inputX) inputX.value = pen.x.toFixed(2);
     if(inputY) inputY.value = pen.y.toFixed(2);
 
     render();
-}
+};
 
+// Wire up the Offset Buttons
 btnOffsetLeft.onclick = () => createOffset(parseFloat(inputOffsetDist.value), -1);
 btnOffsetRight.onclick = () => createOffset(parseFloat(inputOffsetDist.value), 1);
 
