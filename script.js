@@ -146,16 +146,26 @@ function render() {
     // D. DRAW SNAP CURSOR
     if (snap.active) {
         const s = toScreen(snap.x, snap.y);
-        ctx.strokeStyle = '#FFFF00'; 
+        ctx.strokeStyle = '#FFFF00'; // Yellow
         ctx.lineWidth = 2;
-        if (snap.type === 'END') ctx.strokeRect(s.x - 6, s.y - 6, 12, 12);
+        
+        if (snap.type === 'END') {
+            ctx.strokeRect(s.x - 6, s.y - 6, 12, 12); // Square
+        } 
         else if (snap.type === 'MID') {
+            // Triangle
             ctx.beginPath(); ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x - 7, s.y + 6); ctx.lineTo(s.x + 7, s.y + 6); ctx.closePath(); ctx.stroke();
         } 
-        else if (snap.type === 'PERP') {
-            ctx.beginPath(); ctx.moveTo(s.x - 6, s.y + 6); ctx.lineTo(s.x + 6, s.y + 6); ctx.moveTo(s.x, s.y + 6); ctx.lineTo(s.x, s.y - 6); ctx.stroke();
+        else if (snap.type === 'CENTER') {
+            // Circle with Cross (Target)
+            ctx.beginPath(); 
+            ctx.arc(s.x, s.y, 6, 0, Math.PI * 2); // Circle
+            ctx.moveTo(s.x - 8, s.y); ctx.lineTo(s.x + 8, s.y); // Horizontal
+            ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x, s.y + 8); // Vertical
+            ctx.stroke();
         }
-    } else {
+    }
+        
         // Normal Pen
         const p = toScreen(pen.x, pen.y);
         ctx.fillStyle = '#d99e33';
@@ -298,31 +308,44 @@ window.addEventListener('mouseup', () => { isDragging = false; if(!measureMode) 
 
 // --- MOUSE MOVE ---
 canvas.addEventListener('mousemove', (e) => {
+    // 1. PANNING
     if (isDragging) {
         const dx = e.clientX - lastX; const dy = e.clientY - lastY;
         camera.x -= dx / camera.zoom; camera.y += dy / camera.zoom;
         lastX = e.clientX; lastY = e.clientY; render(); return;
     }
 
+    // 2. GET WORLD COORDS
     const rect = canvas.getBoundingClientRect();
     const mousePxX = e.clientX - rect.left; const mousePxY = e.clientY - rect.top;
     const cx = canvas.width / 2; const cy = canvas.height / 2;
     const worldX = (mousePxX - cx) / camera.zoom + camera.x;
     const worldY = camera.y - (mousePxY - cy) / camera.zoom; 
 
-    // Snapping
+    // 3. SNAP LOGIC
     let bestDist = Infinity; let bestPt = null; let bestType = "";
+    
+    // Threshold: 15 pixels converted to world units
     const snapWorldThreshold = 15 / camera.zoom;
     const distSq = (x1, y1, x2, y2) => (x1-x2)**2 + (y1-y2)**2;
 
+    // We only need the DOM element for Center snap now (Perp is gone)
+    const snapCenter = document.getElementById('snap-center');
+
     [...history, currentStroke].forEach(stroke => {
         if (stroke.length < 2) return; 
+        
+        // A. ENDPOINT & MIDPOINT (Iterate through points)
         for (let i = 0; i < stroke.length; i++) {
             const p1 = stroke[i];
+            
+            // ENDPOINT
             if (snapEnd.checked) {
                 const d = distSq(p1.x, p1.y, worldX, worldY);
                 if (d < bestDist) { bestDist = d; bestPt = { x: p1.x, y: p1.y }; bestType = "END"; }
             }
+            
+            // MIDPOINT (Between this point and next)
             if (i < stroke.length - 1) {
                 const p2 = stroke[i+1];
                 if (snapMid.checked) {
@@ -330,16 +353,31 @@ canvas.addEventListener('mousemove', (e) => {
                     const d = distSq(mx, my, worldX, worldY);
                     if (d < bestDist) { bestDist = d; bestPt = { x: mx, y: my }; bestType = "MID"; }
                 }
-                if (snapPerp.checked) {
-                    const A = worldX - p1.x; const B = worldY - p1.y;
-                    const C = p2.x - p1.x; const D = p2.y - p1.y;
-                    const dot = A * C + B * D; const lenSq = C * C + D * D;
-                    let param = -1; if (lenSq !== 0) param = dot / lenSq;
-                    if (param > 0 && param < 1) { 
-                        const xx = p1.x + param * C; const yy = p1.y + param * D;
-                        const d = distSq(xx, yy, worldX, worldY);
-                        if (d < bestDist) { bestDist = d; bestPt = { x: xx, y: yy }; bestType = "PERP"; }
-                    }
+            }
+        }
+
+        // B. CENTER SNAP (Geometric Calculation)
+        // We only check this once per stroke (not every segment) to save CPU
+        if (snapCenter && snapCenter.checked && stroke.length > 2) {
+            // Take 3 points: Start, Middle, End
+            const p1 = stroke[0];
+            const p2 = stroke[Math.floor(stroke.length / 2)];
+            const p3 = stroke[stroke.length - 1];
+
+            // Circle from 3 Points Formula
+            // D = 2(x1(y2-y3) + x2(y3-y1) + x3(y1-y2))
+            const D = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
+            
+            // If D is 0, they are collinear (straight line), so no center.
+            if (Math.abs(D) > 0.001) {
+                const Ux = ((p1.x**2 + p1.y**2) * (p2.y - p3.y) + (p2.x**2 + p2.y**2) * (p3.y - p1.y) + (p3.x**2 + p3.y**2) * (p1.y - p2.y)) / D;
+                const Uy = ((p1.x**2 + p1.y**2) * (p3.x - p2.x) + (p2.x**2 + p2.y**2) * (p1.x - p3.x) + (p3.x**2 + p3.y**2) * (p2.x - p1.x)) / D;
+                
+                const d = distSq(Ux, Uy, worldX, worldY);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestPt = { x: Ux, y: Uy };
+                    bestType = "CENTER";
                 }
             }
         }
