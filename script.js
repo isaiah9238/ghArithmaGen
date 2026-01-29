@@ -85,8 +85,9 @@ ctx.lineJoin = 'round';
 currentStroke.push({ ...pen });
 
 function render() {
-    // Clear Screen
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 1. Fill Background (Prevents transparent images)
+    ctx.fillStyle = '#0f0f0f'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Update Zoom Input safely
     if (inputScale) inputScale.value = camera.zoom.toFixed(1);
@@ -464,6 +465,59 @@ if(btnFit) btnFit.onclick = () => {
     const width = maxX - minX; const height = maxY - minY;
     const zoomX = canvas.width / (width * 1.2); const zoomY = canvas.height / (height * 1.2);
     camera.x = centerX; camera.y = centerY; camera.zoom = Math.min(zoomX, zoomY, 50); render();
+};
+
+// ==========================================
+// EXPORT TOOLS (Image & PDF)
+// ==========================================
+const btnPng = document.getElementById('btn-png');
+const btnPdf = document.getElementById('btn-pdf');
+
+// 1. SAVE AS PNG IMAGE
+if(btnPng) btnPng.onclick = () => {
+    // Create a temporary link to download the image
+    const link = document.createElement('a');
+    
+    // Use the current date for the filename
+    const date = new Date().toISOString().slice(0,10);
+    link.download = `ArithmaSketch_${date}.png`;
+    
+    // Convert canvas to image data
+    link.href = canvas.toDataURL('image/png');
+    
+    // Trigger download
+    link.click();
+};
+
+// 2. SAVE AS PDF
+if(btnPdf) btnPdf.onclick = () => {
+    // Check if the library loaded
+    if (!window.jspdf) {
+        alert("PDF Library not loaded. Check your internet connection or HTML file.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    
+    // Create PDF (Landscape mode, Millimeters, A4 size)
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Capture the canvas as an image
+    const imgData = canvas.toDataURL('image/png');
+
+    // Calculate aspect ratio to fit the page
+    const imgProps = doc.getImageProperties(imgData);
+    const pdfWidth = pageWidth;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    // Add Image to PDF
+    doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    
+    // Save
+    const date = new Date().toISOString().slice(0,10);
+    doc.save(`ArithmaSketch_${date}.pdf`);
 };
 
 if(inputScale) inputScale.onchange = render;
