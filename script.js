@@ -4,50 +4,47 @@
 const canvas = document.getElementById('sketchCanvas');
 const ctx = canvas.getContext('2d');
 
-// UI Elements - JOB
+// UI Elements
 const btnReset = document.getElementById('btn-reset');
 const btnRecenter = document.getElementById('btn-recenter');
 const btnUndo = document.getElementById('btn-undo');
 const btnClose = document.getElementById('btn-close');
 
-// UI Elements - TRAVERSE
 const inputAz = document.getElementById('input-az');
 const inputDist = document.getElementById('input-dist');
 const btnTraverse = document.getElementById('btn-traverse');
 const btnTurnLeft = document.getElementById('btn-turn-left');
 const btnTurnRight = document.getElementById('btn-turn-right');
 
-// UI Elements - COORDS
 const inputX = document.getElementById('input-x');
 const inputY = document.getElementById('input-y');
 const btnGo = document.getElementById('btn-go');
 const btnJump = document.getElementById('btn-jump');
 
-// UI Elements - CURVE
 const curveRadius = document.getElementById('curve-radius');
 const curveFacing = document.getElementById('curve-facing');
 const curveTurn = document.getElementById('curve-turn');
 const btnCurve = document.getElementById('btn-curve');
 
-// UI Elements - SNAPS
 const snapEnd = document.getElementById('snap-end');
 const snapMid = document.getElementById('snap-mid');
-const snapPerp = document.getElementById('snap-perp');
+const snapCenter = document.getElementById('snap-center'); // NEW
 const btnMeasure = document.getElementById('btn-measure');
 const measureOutput = document.getElementById('measure-output');
 
-// UI Elements - AREA
 const btnToggleFill = document.getElementById('btn-toggle-fill');
 const btnAddParcel = document.getElementById('btn-add-parcel');
 const areaDisplay = document.getElementById('area-display');
 const parcelListBody = document.getElementById('parcel-list-body');
 
-// UI Elements - VIEW
 const btnZoomIn = document.getElementById('btn-zoom-in');
 const btnZoomOut = document.getElementById('btn-zoom-out');
 const btnFit = document.getElementById('btn-fit');
 const inputScale = document.getElementById('input-scale');
 const offsetDisplay = document.getElementById('offset-display');
+
+const btnPng = document.getElementById('btn-png');
+const btnPdf = document.getElementById('btn-pdf');
 
 // ==========================================
 // 2. STATE
@@ -57,16 +54,10 @@ let currentStroke = [];
 let pen = { x: 0, y: 0 }; 
 let camera = { x: 0, y: 0, zoom: 5 };
 let snap = { active: false, x: 0, y: 0, type: '' }; 
-
-// Area State
 let parcels = []; 
 let showFill = true; 
-
-// Measure State
 let measureMode = false;
 let measureStart = null; 
-
-// Mouse State
 let isDragging = false;
 let lastX=0, lastY=0;
 
@@ -85,11 +76,10 @@ ctx.lineJoin = 'round';
 currentStroke.push({ ...pen });
 
 function render() {
-    // 1. Fill Background (Prevents transparent images)
+    // 1. Background Fill (for Export)
     ctx.fillStyle = '#0f0f0f'; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Update Zoom Input safely
     if (inputScale) inputScale.value = camera.zoom.toFixed(1);
     
     const cx = canvas.width / 2;
@@ -105,14 +95,13 @@ function render() {
 
     // B. DRAW ORIGIN
     const origin = toScreen(0,0);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(origin.x - 10, origin.y); ctx.lineTo(origin.x + 10, origin.y);
     ctx.moveTo(origin.x, origin.y - 10); ctx.lineTo(origin.x, origin.y + 10);
     ctx.stroke();
 
-    // C. DRAW SKETCH (With Fill Logic)
+    // C. DRAW SKETCH
     ctx.lineWidth = 2;
     [...history, currentStroke].forEach(stroke => {
         if (stroke.length < 2) return;
@@ -125,7 +114,6 @@ function render() {
             ctx.lineTo(pt.x, pt.y);
         }
 
-        // Check Closure
         const first = stroke[0];
         const last = stroke[stroke.length - 1];
         const isClosed = Math.abs(first.x - last.x) < 0.001 && Math.abs(first.y - last.y) < 0.001;
@@ -146,27 +134,24 @@ function render() {
     // D. DRAW SNAP CURSOR
     if (snap.active) {
         const s = toScreen(snap.x, snap.y);
-        ctx.strokeStyle = '#FFFF00'; // Yellow
+        ctx.strokeStyle = '#FFFF00'; 
         ctx.lineWidth = 2;
         
         if (snap.type === 'END') {
-            ctx.strokeRect(s.x - 6, s.y - 6, 12, 12); // Square
+            ctx.strokeRect(s.x - 6, s.y - 6, 12, 12);
         } 
         else if (snap.type === 'MID') {
-            // Triangle
             ctx.beginPath(); ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x - 7, s.y + 6); ctx.lineTo(s.x + 7, s.y + 6); ctx.closePath(); ctx.stroke();
         } 
         else if (snap.type === 'CENTER') {
-            // Circle with Cross (Target)
+            // Circle with Cross
             ctx.beginPath(); 
-            ctx.arc(s.x, s.y, 6, 0, Math.PI * 2); // Circle
-            ctx.moveTo(s.x - 8, s.y); ctx.lineTo(s.x + 8, s.y); // Horizontal
-            ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x, s.y + 8); // Vertical
+            ctx.arc(s.x, s.y, 6, 0, Math.PI * 2); 
+            ctx.moveTo(s.x - 8, s.y); ctx.lineTo(s.x + 8, s.y); 
+            ctx.moveTo(s.x, s.y - 8); ctx.lineTo(s.x, s.y + 8); 
             ctx.stroke();
         }
-    }
-        
-        // Normal Pen
+    } else {
         const p = toScreen(pen.x, pen.y);
         ctx.fillStyle = '#d99e33';
         ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
@@ -263,9 +248,8 @@ function updateLiveArea() {
 // --- MOUSE WHEEL ZOOM ---
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const zoomIntensity = 0.1;
     const delta = e.deltaY < 0 ? 1 : -1;
-    const newZoom = camera.zoom + (delta * zoomIntensity * camera.zoom);
+    const newZoom = camera.zoom + (delta * 0.1 * camera.zoom);
     camera.zoom = Math.max(0.5, Math.min(newZoom, 100));
     render();
 }, { passive: false });
@@ -306,46 +290,36 @@ canvas.addEventListener('mousedown', (e) => {
 
 window.addEventListener('mouseup', () => { isDragging = false; if(!measureMode) canvas.style.cursor = 'crosshair'; });
 
-// --- MOUSE MOVE ---
+// --- MOUSE MOVE (UPDATED WITH CENTER SNAP) ---
 canvas.addEventListener('mousemove', (e) => {
-    // 1. PANNING
     if (isDragging) {
         const dx = e.clientX - lastX; const dy = e.clientY - lastY;
         camera.x -= dx / camera.zoom; camera.y += dy / camera.zoom;
         lastX = e.clientX; lastY = e.clientY; render(); return;
     }
 
-    // 2. GET WORLD COORDS
     const rect = canvas.getBoundingClientRect();
     const mousePxX = e.clientX - rect.left; const mousePxY = e.clientY - rect.top;
     const cx = canvas.width / 2; const cy = canvas.height / 2;
     const worldX = (mousePxX - cx) / camera.zoom + camera.x;
     const worldY = camera.y - (mousePxY - cy) / camera.zoom; 
 
-    // 3. SNAP LOGIC
+    // Snapping
     let bestDist = Infinity; let bestPt = null; let bestType = "";
-    
-    // Threshold: 15 pixels converted to world units
     const snapWorldThreshold = 15 / camera.zoom;
     const distSq = (x1, y1, x2, y2) => (x1-x2)**2 + (y1-y2)**2;
-
-    // We only need the DOM element for Center snap now (Perp is gone)
-    const snapCenter = document.getElementById('snap-center');
 
     [...history, currentStroke].forEach(stroke => {
         if (stroke.length < 2) return; 
         
-        // A. ENDPOINT & MIDPOINT (Iterate through points)
         for (let i = 0; i < stroke.length; i++) {
             const p1 = stroke[i];
-            
             // ENDPOINT
             if (snapEnd.checked) {
                 const d = distSq(p1.x, p1.y, worldX, worldY);
                 if (d < bestDist) { bestDist = d; bestPt = { x: p1.x, y: p1.y }; bestType = "END"; }
             }
-            
-            // MIDPOINT (Between this point and next)
+            // MIDPOINT
             if (i < stroke.length - 1) {
                 const p2 = stroke[i+1];
                 if (snapMid.checked) {
@@ -356,29 +330,17 @@ canvas.addEventListener('mousemove', (e) => {
             }
         }
 
-        // B. CENTER SNAP (Geometric Calculation)
-        // We only check this once per stroke (not every segment) to save CPU
+        // CENTER SNAP (Geometry)
         if (snapCenter && snapCenter.checked && stroke.length > 2) {
-            // Take 3 points: Start, Middle, End
             const p1 = stroke[0];
             const p2 = stroke[Math.floor(stroke.length / 2)];
             const p3 = stroke[stroke.length - 1];
-
-            // Circle from 3 Points Formula
-            // D = 2(x1(y2-y3) + x2(y3-y1) + x3(y1-y2))
             const D = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
-            
-            // If D is 0, they are collinear (straight line), so no center.
             if (Math.abs(D) > 0.001) {
                 const Ux = ((p1.x**2 + p1.y**2) * (p2.y - p3.y) + (p2.x**2 + p2.y**2) * (p3.y - p1.y) + (p3.x**2 + p3.y**2) * (p1.y - p2.y)) / D;
                 const Uy = ((p1.x**2 + p1.y**2) * (p3.x - p2.x) + (p2.x**2 + p2.y**2) * (p1.x - p3.x) + (p3.x**2 + p3.y**2) * (p2.x - p1.x)) / D;
-                
                 const d = distSq(Ux, Uy, worldX, worldY);
-                if (d < bestDist) {
-                    bestDist = d;
-                    bestPt = { x: Ux, y: Uy };
-                    bestType = "CENTER";
-                }
+                if (d < bestDist) { bestDist = d; bestPt = { x: Ux, y: Uy }; bestType = "CENTER"; }
             }
         }
     });
@@ -426,94 +388,58 @@ if(btnClose) btnClose.onclick = () => {
     if (currentStroke.length < 2) { alert("Draw a shape first!"); return; }
     const startPt = currentStroke[0]; pen.x = startPt.x; pen.y = startPt.y;
     currentStroke.push({ ...pen }); history.push([...currentStroke]); currentStroke = [{ ...pen }];
-    inputX.value = pen.x.toFixed(2); inputY.value = pen.y.toFixed(2); render();
+    if(inputX) inputX.value = pen.x.toFixed(2); if(inputY) inputY.value = pen.y.toFixed(2); render();
 };
 
 if(btnTraverse) btnTraverse.onclick = () => {
     const az = parseFloat(inputAz.value) || 0; const dist = parseFloat(inputDist.value) || 0;
     const rad = (az * Math.PI) / 180;
     pen.x += dist * Math.sin(rad); pen.y += dist * Math.cos(rad);
-    currentStroke.push({ ...pen }); inputX.value = pen.x.toFixed(2); inputY.value = pen.y.toFixed(2);
+    currentStroke.push({ ...pen }); 
+    if(inputX) inputX.value = pen.x.toFixed(2); if(inputY) inputY.value = pen.y.toFixed(2);
     camera.x = pen.x; camera.y = pen.y; render();
 };
 
 if(btnTurnLeft) btnTurnLeft.onclick = () => { inputAz.value = (parseFloat(inputAz.value) - 90 + 360) % 360; };
 if(btnTurnRight) btnTurnRight.onclick = () => { inputAz.value = (parseFloat(inputAz.value) + 90) % 360; };
 
-// ==========================================
-// CURVE TOOL (Updated with Tangent Logic)
-// ==========================================
+// --- CURVE (TANGENT + MANUAL) ---
 if(btnCurve) btnCurve.onclick = () => {
     const R = parseFloat(curveRadius.value);
-    const facing = curveFacing.value; 
-    const turn = curveTurn.value;
-    
+    const facing = curveFacing.value; const turn = curveTurn.value;
     let startAngle = 0;
 
-    // 1. DETERMINE STARTING DIRECTION
     if (facing === 'Tangent') {
-        // We need a previous point to know which way we are walking
         let prev = null;
-        
-        // Case A: We are in the middle of drawing a line
-        if (currentStroke.length > 1) {
-            prev = currentStroke[currentStroke.length - 2];
-        } 
-        // Case B: We just finished a line and haven't moved the pen
+        if (currentStroke.length > 1) { prev = currentStroke[currentStroke.length - 2]; } 
         else if (history.length > 0) {
             const lastShape = history[history.length - 1];
             const lastPt = lastShape[lastShape.length - 1];
-            // Verify pen is still at the end of that line
-            if (pen.x === lastPt.x && pen.y === lastPt.y) {
-                prev = lastShape[lastShape.length - 2];
-            }
+            if (pen.x === lastPt.x && pen.y === lastPt.y) { prev = lastShape[lastShape.length - 2]; }
         }
-
-        if (prev) {
-            // Calculate exact angle of the line we just drew
-            // Math.atan2(dy, dx) gives us the direction
-            startAngle = Math.atan2(pen.y - prev.y, pen.x - prev.x);
-        } else {
-            alert("No previous line to attach to! Select a manual direction (N, S, E, W).");
-            return;
-        }
+        if (prev) { startAngle = Math.atan2(pen.y - prev.y, pen.x - prev.x); } 
+        else { alert("No previous line to attach to! Use manual direction."); return; }
     } else {
-        // Manual Override (Old Logic)
         if (facing === 'N') startAngle = Math.PI / 2;
         if (facing === 'W') startAngle = Math.PI;
         if (facing === 'S') startAngle = -Math.PI / 2;
         if (facing === 'E') startAngle = 0;
     }
 
-    // 2. CALCULATE GEOMETRY
     const isLeft = (turn === 'Left');
     const sweep = isLeft ? (Math.PI / 2) : -(Math.PI / 2);
-    
-    // The Center is 90 degrees perpendicular to our path
     const centerAngle = startAngle + (isLeft ? (Math.PI / 2) : -(Math.PI / 2));
-    
     const centerX = pen.x + R * Math.cos(centerAngle);
     const centerY = pen.y + R * Math.sin(centerAngle);
-
-    // 3. DRAW THE ARC
-    const steps = 20; 
-    let currentTheta = centerAngle + Math.PI;
+    const steps = 20; let currentTheta = centerAngle + Math.PI;
 
     for (let i = 1; i <= steps; i++) {
-        const t = i / steps;
-        const angle = currentTheta + (sweep * t);
-        
-        pen.x = centerX + R * Math.cos(angle);
-        pen.y = centerY + R * Math.sin(angle);
-        
+        const t = i / steps; const angle = currentTheta + (sweep * t);
+        pen.x = centerX + R * Math.cos(angle); pen.y = centerY + R * Math.sin(angle);
         currentStroke.push({ ...pen });
     }
-    
-    if(inputX) inputX.value = pen.x.toFixed(2);
-    if(inputY) inputY.value = pen.y.toFixed(2);
-    
-    render();
-    canvas.focus();
+    if(inputX) inputX.value = pen.x.toFixed(2); if(inputY) inputY.value = pen.y.toFixed(2);
+    render(); canvas.focus();
 };
 
 if(btnMeasure) btnMeasure.onclick = () => {
@@ -536,13 +462,10 @@ if(btnAddParcel) btnAddParcel.onclick = () => {
     let targetShape = null;
     if (currentStroke.length > 2) targetShape = currentStroke; 
     else if (history.length > 0) targetShape = history[history.length - 1];
-
     if (!targetShape) { alert("Draw a shape first!"); return; }
-
     const area = getShapeArea(targetShape);
     const parcelID = String.fromCharCode(65 + parcels.length); 
     parcels.push({ id: parcelID, acres: area.acres, sqft: area.sqft });
-    
     parcelListBody.innerHTML = ""; 
     parcels.forEach(p => {
         const row = document.createElement('tr');
@@ -564,55 +487,23 @@ if(btnFit) btnFit.onclick = () => {
     camera.x = centerX; camera.y = centerY; camera.zoom = Math.min(zoomX, zoomY, 50); render();
 };
 
-// ==========================================
-// EXPORT TOOLS (Image & PDF)
-// ==========================================
-const btnPng = document.getElementById('btn-png');
-const btnPdf = document.getElementById('btn-pdf');
-
-// 1. SAVE AS PNG IMAGE
 if(btnPng) btnPng.onclick = () => {
-    // Create a temporary link to download the image
     const link = document.createElement('a');
-    
-    // Use the current date for the filename
     const date = new Date().toISOString().slice(0,10);
     link.download = `ArithmaSketch_${date}.png`;
-    
-    // Convert canvas to image data
     link.href = canvas.toDataURL('image/png');
-    
-    // Trigger download
     link.click();
 };
 
-// 2. SAVE AS PDF
 if(btnPdf) btnPdf.onclick = () => {
-    // Check if the library loaded
-    if (!window.jspdf) {
-        alert("PDF Library not loaded. Check your internet connection or HTML file.");
-        return;
-    }
-
+    if (!window.jspdf) { alert("PDF Library not loaded."); return; }
     const { jsPDF } = window.jspdf;
-    
-    // Create PDF (Landscape mode, Millimeters, A4 size)
     const doc = new jsPDF('l', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    // Capture the canvas as an image
     const imgData = canvas.toDataURL('image/png');
-
-    // Calculate aspect ratio to fit the page
     const imgProps = doc.getImageProperties(imgData);
-    const pdfWidth = pageWidth;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    // Add Image to PDF
-    doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    
-    // Save
+    const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
+    doc.addImage(imgData, 'PNG', 0, 0, pageWidth, pdfHeight);
     const date = new Date().toISOString().slice(0,10);
     doc.save(`ArithmaSketch_${date}.pdf`);
 };
