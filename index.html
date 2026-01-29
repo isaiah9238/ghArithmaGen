@@ -22,7 +22,6 @@
             <button id="btn-undo" class="reset-btn" style="background: #555; border: 1px solid #666;">Undo</button>
             <button id="btn-close" class="reset-btn" style="background: #d99e33; color:black; border: none; font-weight:bold;">Close Loop</button>
         </div>
-        
         <div style="display: flex; gap: 5px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
             <button id="btn-png" class="action-btn" style="background: #2980b9; margin:0; font-size:0.75rem;">IMG</button>
             <button id="btn-pdf" class="action-btn" style="background: #c0392b; margin:0; font-size:0.75rem;">PDF</button>
@@ -63,13 +62,16 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
             <label style="font-size: 0.8rem; align-self: center;">Radius:</label>
             <input type="number" id="curve-radius" value="15">
+            
             <label style="font-size: 0.8rem; align-self: center;">Facing:</label>
             <select id="curve-facing" style="background:#111; color:#fff; border:1px solid #555;">
-                <option value="Tangent">Tangent (Auto)</option> <option value="N">North</option>
+                <option value="Tangent">Tangent (Auto)</option>
+                <option value="N">North</option>
                 <option value="S">South</option>
                 <option value="E">East</option>
                 <option value="W">West</option>
             </select>
+            
             <label style="font-size: 0.8rem; align-self: center;">Turn:</label>
             <select id="curve-turn" style="background:#111; color:#fff; border:1px solid #555;">
                 <option value="Left">Left</option>
