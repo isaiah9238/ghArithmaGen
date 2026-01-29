@@ -755,7 +755,18 @@ if(btnPdf) btnPdf.onclick = () => {
     doc.save(`ArithmaSketch_${date}.pdf`);
 };
 
-if(inputScale) inputScale.onchange = render;
+// FIX: Update Camera Zoom when user types a number
+if(inputScale) inputScale.onchange = () => {
+    const val = parseFloat(inputScale.value);
+    // Safety check: make sure it's a real number and not 0
+    if (!isNaN(val) && val > 0.1) {
+        camera.zoom = val;
+        render();
+    } else {
+        // If they typed junk, put the old number back
+        inputScale.value = camera.zoom.toFixed(1);
+    }
+};
 
 // Inputs update current styles
 if(inputColor) inputColor.oninput = () => { currentStroke.color = inputColor.value; };
