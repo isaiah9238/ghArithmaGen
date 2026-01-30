@@ -96,3 +96,45 @@ canvas {
     height: 100%;
     touch-action: none;
 }
+
+/* --- UI POLISH --- */
+
+/* Relaxed Card Titles */
+.card strong {
+    display: block;
+    margin-bottom: 12px; /* Breathing room below title */
+    border-bottom: 1px solid #333; /* Optional: Subtle divider line */
+    padding-bottom: 5px;
+}
+
+/* Standard Layouts */
+.row-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 50/50 Split */
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+/* Make inputs fill the space in grids */
+.input-group input, 
+.input-group select {
+    flex: 1; /* Stretch to fill */
+    background: #222;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 4px;
+}
+
+.label-text {
+    width: 50px; /* Standard label width for alignment */
+    text-align: right;
+    font-size: 0.8rem;
+    color: #aaa;
+}
