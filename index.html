@@ -18,24 +18,17 @@
             <button id="btn-reset" class="reset-btn" style="background: #444; border: 1px solid #666;">New Job</button>
             <button id="btn-recenter" class="reset-btn" style="background: #444; border: 1px solid #666;">Find Pen</button>
         </div>
-        
         <div style="display: flex; gap: 5px; margin-top: 5px;">
-            <button id="btn-save" class="action-btn" style="background: #27ae60; margin:0; font-size:0.8rem;">SAVE JOB</button>
-            <button id="btn-load" class="action-btn" style="background: #8e44ad; margin:0; font-size:0.8rem;">LOAD JOB</button>
+            <button id="btn-save" class="action-btn" style="background: #27ae60; margin:0; font-size:0.8rem;">SAVE</button>
+            <button id="btn-load" class="action-btn" style="background: #8e44ad; margin:0; font-size:0.8rem;">LOAD</button>
             <input type="file" id="file-input" accept=".json" style="display: none;">
         </div>
-
-        <div style="display: flex; gap: 5px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
-            <button id="btn-undo" class="reset-btn" style="background: #555; border: 1px solid #666;">Undo</button>
-            <button id="btn-close" class="reset-btn" style="background: #d99e33; color:black; border: none; font-weight:bold;">Close Loop</button>
-        </div>
-        
         <div style="display: flex; gap: 5px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
             <button id="btn-png" class="action-btn" style="background: #2980b9; margin:0; font-size:0.75rem;">IMG</button>
             <button id="btn-pdf" class="action-btn" style="background: #c0392b; margin:0; font-size:0.75rem;">PDF</button>
         </div>
       </div>
-      
+
       <div class="card">
         <strong>Drafting Styles</strong>
         <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
@@ -49,6 +42,53 @@
         </div>
       </div>
 
+      <div class="card">
+        <strong>View & Modify Tools</strong>
+        <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
+            <button id="btn-zoom-in" class="reset-btn" style="font-weight:bold; width:30px;">+</button>
+            <button id="btn-zoom-out" class="reset-btn" style="font-weight:bold; width:30px;">-</button>
+            <button id="btn-fit" class="action-btn" style="background:#555; padding:5px; font-size:0.7rem; margin:0;">Fit</button>
+            <button id="btn-paper-mode" class="action-btn" style="background:#eee; color:#000; padding:5px; font-size:0.7rem; margin:0;">Paper</button>
+        </div>
+        <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
+             <label style="font-size:0.75rem; color:#aaa;">Zoom Lvl:</label>
+             <input type="number" id="input-scale" value="5" step="1" style="width: 50px;">
+        </div>
+        
+        <hr style="border:0; border-top:1px solid #444; margin:8px 0;">
+        
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+            <label style="font-size:0.8rem;">Offset Dist:</label>
+            <input type="number" id="input-offset-dist" value="10" placeholder="Feet">
+        </div>
+        <div style="display:flex; gap:5px;">
+            <button id="btn-offset-left" class="reset-btn" style="font-size:0.75rem;">Off Left</button>
+            <button id="btn-offset-right" class="reset-btn" style="font-size:0.75rem;">Off Right</button>
+        </div>
+        <button id="btn-fillet" class="action-btn" style="background: #e67e22; margin-top:5px; font-size:0.8rem;">JOIN / FILLET (Last 2)</button>
+      </div>
+
+      <div class="card">
+        <strong>Target / Pen Control</strong>
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+            <label style="width: 20px; text-align: right; color: #a3956a;">E:</label>
+            <input type="number" id="input-x" placeholder="0.00" value="0.00">
+        </div>
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+            <label style="width: 20px; text-align: right; color: #a3956a;">N:</label>
+            <input type="number" id="input-y" placeholder="0.00" value="0.00">
+        </div>
+        
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <button id="btn-go" class="action-btn" style="margin:0;">DRAW TO</button>
+            <button id="btn-jump" class="action-btn" style="background: #555; margin:0;">JUMP TO</button>
+        </div>
+        
+        <div style="margin-top:5px; font-size:0.7rem; color:#888; text-align:center;">
+            Radius from Origin: <span id="offset-display" style="color:#f3e2a0">0.00'</span>
+        </div>
+      </div>
+      
       <div class="card">
         <strong>Traverse Line</strong>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
@@ -65,38 +105,10 @@
       </div>
 
       <div class="card">
-        <strong>Offsets & Tools</strong>
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
-            <label style="font-size:0.8rem;">Offset Dist:</label>
-            <input type="number" id="input-offset-dist" value="10" placeholder="Feet">
-        </div>
-        <div style="display:flex; gap:5px;">
-            <button id="btn-offset-left" class="reset-btn" style="font-size:0.75rem;">Offset Left</button>
-            <button id="btn-offset-right" class="reset-btn" style="font-size:0.75rem;">Offset Right</button>
-        </div>
-        <button id="btn-fillet" class="action-btn" style="background: #e67e22; margin-top:5px; font-size:0.8rem;">JOIN / FILLET (Last 2)</button>
-      </div>
-
-      <div class="card">
-        <strong>Target Coordinate</strong>
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
-            <label style="width: 20px; text-align: right; color: #a3956a;">E:</label>
-            <input type="number" id="input-x" placeholder="0.00" value="0.00">
-        </div>
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
-            <label style="width: 20px; text-align: right; color: #a3956a;">N:</label>
-            <input type="number" id="input-y" placeholder="0.00" value="0.00">
-        </div>
-        <button id="btn-go" class="action-btn">DRAW LINE</button>
-        <button id="btn-jump" class="action-btn" style="background: #555; margin-top: 5px;">JUMP (MOVE PEN)</button>
-      </div>
-      
-     <div class="card">
         <strong>Curve Staker</strong>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
             <label style="font-size: 0.8rem; align-self: center;">Radius:</label>
             <input type="number" id="curve-radius" value="15">
-            
             <label style="font-size: 0.8rem; align-self: center;">Facing:</label>
             <select id="curve-facing" style="background:#111; color:#fff; border:1px solid #555;">
                 <option value="Tangent">Tangent (Auto)</option>
@@ -105,7 +117,6 @@
                 <option value="E">East</option>
                 <option value="W">West</option>
             </select>
-            
             <label style="font-size: 0.8rem; align-self: center;">Turn:</label>
             <select id="curve-turn" style="background:#111; color:#fff; border:1px solid #555;">
                 <option value="Left">Left</option>
@@ -113,24 +124,6 @@
             </select>
         </div>
         <button id="btn-curve" class="action-btn" style="background: #33d9b2; color: #000;">STAKE CURVE</button>
-      </div>
-      
-      <div class="card">
-        <strong>Snaps & Measure</strong>
-        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
-            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
-                <input type="checkbox" id="snap-end" checked> Endpoint
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
-                <input type="checkbox" id="snap-mid" checked> Midpoint
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
-                <input type="checkbox" id="snap-center"> Center (Arc)
-            </label>
-            <hr style="width:100%; border:0; border-top:1px solid #444; margin:5px 0;">
-            <button id="btn-measure" class="reset-btn" style="background:#333; border:1px solid #666; color:#aaa;">RULER: OFF</button>
-            <div id="measure-output" style="font-size:0.75rem; color:#f3e2a0; min-height:1.2em;"></div>
-        </div>
       </div>
 
       <div class="card">
@@ -153,25 +146,30 @@
       </div>
 
       <div class="card">
-        <strong>View Controls</strong>
-        <div style="display: flex; gap: 5px; margin-top: 5px;">
-            <button id="btn-zoom-in" class="reset-btn" style="font-weight:bold; font-size:1.2rem;">+</button>
-            <button id="btn-zoom-out" class="reset-btn" style="font-weight:bold; font-size:1.2rem;">-</button>
-        </div>
-        <div style="display:flex; gap:5px; margin-top:5px;">
-            <button id="btn-fit" class="action-btn" style="background:#555; padding:5px; font-size:0.8rem;">Fit</button>
-            <button id="btn-paper-mode" class="action-btn" style="background:#eee; color:#000; padding:5px; font-size:0.8rem;">Paper Mode</button>
-        </div>
-      </div>
+        <strong>Tools</strong>
+        
+        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="snap-end" checked> Endpoint
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="snap-mid" checked> Midpoint
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="snap-center"> Center (Arc)
+            </label>
+            
+            <hr style="width:100%; border:0; border-top:1px solid #444; margin:5px 0;">
+            
+            <button id="btn-measure" class="reset-btn" style="background:#333; border:1px solid #666; color:#aaa;">RULER: OFF</button>
+            <div id="measure-output" style="font-size:0.75rem; color:#f3e2a0; min-height:1.2em;"></div>
+            
+            <hr style="width:100%; border:0; border-top:1px solid #444; margin:5px 0;">
 
-      <div class="card">
-        <div class="data-row">
-            <span>Offset:</span>
-            <span id="offset-display" style="color:#f3e2a0">0.00'</span>
-        </div>
-        <div class="data-row" style="margin-top:5px;">
-             <span>Zoom:</span>
-             <input type="number" id="input-scale" value="5" step="1" style="width: 50px;">
+            <div style="display: flex; gap: 5px;">
+                <button id="btn-undo" class="reset-btn" style="background: #555; border: 1px solid #666;">Undo</button>
+                <button id="btn-close" class="reset-btn" style="background: #d99e33; color:black; border: none; font-weight:bold;">Close Loop</button>
+            </div>
         </div>
       </div>
       
