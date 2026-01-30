@@ -1,6 +1,23 @@
 // ==========================================
 // 1. SETUP
 // ==========================================
+
+// --- THEME TOGGLE ---
+const btnTheme = document.getElementById('btn-theme');
+let isDarkMode = true;
+
+if(btnTheme) btnTheme.onclick = () => {
+    isDarkMode = !isDarkMode;
+    if (isDarkMode) {
+        document.body.removeAttribute('data-theme');
+        btnTheme.innerText = "☀"; // Sun icon for Dark Mode
+    } else {
+        document.body.setAttribute('data-theme', 'light');
+        btnTheme.innerText = "☾"; // Moon icon for Light Mode
+    }
+    render(); // Re-draw canvas to match new background
+};
+
 const canvas = document.getElementById('sketchCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -100,13 +117,20 @@ currentStroke.width = parseInt(inputWidth.value);
 currentStroke.points.push({ ...pen });
 
 function render() {
-    // 1. Background & Theme Colors
-    const bgColor = paperMode ? '#ffffff' : '#0f0f0f';
-    const gridColor = paperMode ? '#e0e0e0' : '#222';
-    const axisColor = paperMode ? '#888' : '#444';
-    const defaultLineColor = paperMode ? '#000000' : '#f3e2a0';
+    // 1. Determine Colors based on CSS Variables
+    // We cheat a little by checking the body attribute
+    const isLight = document.body.getAttribute('data-theme') === 'light';
+    
+    const bgColor = isLight ? '#f1f5f9' : '#0f172a'; // Match CSS --bg-app
+    const gridColor = isLight ? '#cbd5e1' : '#1e293b'; // Match CSS --border
+    const axisColor = isLight ? '#94a3b8' : '#334155';
+    
+    // Check if we are in specific "Paper Mode" (which overrides everything)
+    const finalBg = paperMode ? '#ffffff' : bgColor;
+    const finalGrid = paperMode ? '#e0e0e0' : gridColor;
+    const finalAxis = paperMode ? '#888' : axisColor;
 
-    ctx.fillStyle = bgColor; 
+    ctx.fillStyle = finalBg; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     if (inputScale) inputScale.value = camera.zoom.toFixed(1);
