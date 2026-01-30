@@ -842,19 +842,14 @@ const fileInput = document.getElementById('file-input');
 
 // 1. SAVE JOB (Download JSON)
 if(btnSave) btnSave.onclick = () => {
-    // Pack all important data into one object
     const jobData = {
         version: "1.0",
         date: new Date().toISOString(),
         history: history,
-        // We also need to save the current parcels so they don't vanish!
-        parcels: parcels
+        parcels: parcels // Save the parcels too
     };
 
-    // Convert to text
     const jsonString = JSON.stringify(jobData, null, 2);
-    
-    // Create download link
     const blob = new Blob([jsonString], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     
@@ -867,7 +862,7 @@ if(btnSave) btnSave.onclick = () => {
 
 // 2. LOAD JOB (Trigger File Picker)
 if(btnLoad) btnLoad.onclick = () => {
-    fileInput.click(); // Clicks the hidden input
+    fileInput.click(); 
 };
 
 // 3. READ FILE (When user picks a file)
@@ -888,85 +883,18 @@ if(fileInput) fileInput.onchange = (e) => {
             if (data.parcels) {
                 parcels = data.parcels;
                 // Rebuild Parcel List UI
-                parcelListBody.innerHTML = ""; 
-                parcels.forEach(p => {
-                    const row = document.createElement('tr');
-                    row.style.borderBottom = "1px solid #333";
-                    row.innerHTML = `<td style="padding:4px; color:#f3e2a0; font-weight:bold;">${p.id}</td><td style="padding:4px; text-align:right;">${p.acres.toFixed(3)}</td><td style="padding:4px; text-align:right; color:#888;">${Math.round(p.sqft)}</td>`;
-                    parcelListBody.appendChild(row);
-                });
+                if(typeof parcelListBody !== 'undefined') {
+                    parcelListBody.innerHTML = ""; 
+                    parcels.forEach(p => {
+                        const row = document.createElement('tr');
+                        row.style.borderBottom = "1px solid #333";
+                        row.innerHTML = `<td style="padding:4px; color:#f3e2a0; font-weight:bold;">${p.id}</td><td style="padding:4px; text-align:right;">${p.acres.toFixed(3)}</td><td style="padding:4px; text-align:right; color:#888;">${Math.round(p.sqft)}</td>`;
+                        parcelListBody.appendChild(row);
+                    });
+                }
             }
-
-            // --- LABEL MATH HELPERS ---
-
-            function getBearingAndDist(p1, p2) {
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-    
-            // Calculate Azimuth (0-360)
-            let az = Math.atan2(dx, dy) * (180 / Math.PI);
-            if (az < 0) az += 360;
-    
-            // Convert to Quadrant Bearing (e.g., N 45° E)
-            let bearing = "";
-            let angle = 0;
-    
-            if (az >= 0 && az < 90) {
-                bearing = "N " + az.toFixed(1) + "° E";
-            } else if (az >= 90 && az < 180) {
-                angle = 180 - az;
-                bearing = "S " + angle.toFixed(1) + "° E";
-            } else if (az >= 180 && az < 270) {
-                angle = az - 180;
-                bearing = "S " + angle.toFixed(1) + "° W";
-            } else {
-                angle = 360 - az;
-                bearing = "N " + angle.toFixed(1) + "° W";
-            }
-    
-            return { text: `${bearing}  ${dist.toFixed(2)}'`, angle: az };
-        }
-
-        function drawSmartLabel(ctx, p1, p2, toScreenFunc) {
-            const data = getBearingAndDist(p1, p2);
-    
-            // Find Midpoint in SCREEN coords
-            const s1 = toScreenFunc(p1.x, p1.y);
-            const s2 = toScreenFunc(p2.x, p2.y);
-            const midX = (s1.x + s2.x) / 2;
-            const midY = (s1.y + s2.y) / 2;
-    
-            ctx.save();
-            ctx.translate(midX, midY);
-    
-            // Rotate text to align with line
-            // Math.atan2(dy, dx) gives rotation in radians for canvas
-            const dy = s2.y - s1.y;
-            const dx = s2.x - s1.x;
-            let rotation = Math.atan2(dy, dx);
             
-            // "Heads Up" Rule: If text is upside down, flip it 180
-            if (Math.abs(rotation) > Math.PI / 2) {
-                rotation += Math.PI;
-            }
-    
-            ctx.rotate(rotation);
-    
-            // Draw Text (Cyan, slightly above line)
-            ctx.fillStyle = "#00FFFF"; // Cyan
-            ctx.font = "11px monospace";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "bottom"; // Sits on top of the line
-            ctx.fillText(data.text, 0, -3); // -3px padding
-    
-            ctx.restore();
-        }
-
-            // Reset current pen
-            currentStroke.points = [];
-            
-            // Move pen to end of last shape so you can keep drawing
+            // Move pen to end of last shape
             if (history.length > 0) {
                 const lastShape = history[history.length - 1];
                 const pts = lastShape.points || lastShape;
@@ -979,13 +907,13 @@ if(fileInput) fileInput.onchange = (e) => {
                 currentStroke.points = [{...pen}];
             }
             
-            // Auto-Zoom to fit the loaded job
-            if(btnFit) btnFit.click();
-            
             // Update UI
             if(inputX) inputX.value = pen.x.toFixed(2);
             if(inputY) inputY.value = pen.y.toFixed(2);
-            render();
+            
+            // Auto-Zoom
+            if(btnFit) btnFit.click();
+            else render();
             
             alert("Job Loaded Successfully!");
             
@@ -994,42 +922,195 @@ if(fileInput) fileInput.onchange = (e) => {
             alert("Error loading file. Is this a valid .json job file?");
         }
     };
-    
     reader.readAsText(file);
-// --- HELPER: DRAW THE GRID ---
-// Paste this at the VERY BOTTOM of script.js
-function drawGrid(ctx, camera, cx, cy, width, height, gridColor, axisColor) {
-    const zoom = camera.zoom;
-    const gridSize = 100 * zoom; // Grid lines every 100 units
-    
-    // Calculate offset so grid moves when you pan
-    const offsetX = (camera.x * zoom) % gridSize;
-    const offsetY = (camera.y * zoom) % gridSize;
-    
-    ctx.beginPath(); // Start fresh
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 0.5; // Thin lines
-
-    // Vertical Lines
-    for (let x = -offsetX; x < width; x += gridSize) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-    }
-    
-    // Horizontal Lines
-    for (let y = offsetY; y < height; y += gridSize) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-    }
-    
-    ctx.stroke(); // Draw everything
-}
-
-    
-    
-    // Clear input so you can load the same file again if needed
-    fileInput.value = ''; 
 };
 
+// ==========================================
+// MATH HELPERS (For Smart Labels)
+// ==========================================
+
+function getBearingAndDist(p1, p2) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    
+    // Calculate Azimuth (0-360)
+    let az = Math.atan2(dx, dy) * (180 / Math.PI);
+    if (az < 0) az += 360;
+    
+    // Convert to Quadrant Bearing (e.g., N 45° E)
+    let bearing = "";
+    if (az >= 0 && az < 90) bearing = "N " + az.toFixed(1) + "° E";
+    else if (az >= 90 && az < 180) bearing = "S " + (180 - az).toFixed(1) + "° E";
+    else if (az >= 180 && az < 270) bearing = "S " + (az - 180).toFixed(1) + "° W";
+    else bearing = "N " + (360 - az).toFixed(1) + "° W";
+    
+    return { text: `${bearing}  ${dist.toFixed(2)}'`, angle: az };
+}
+
+function drawSmartLabel(ctx, p1, p2, toScreenFunc) {
+    const data = getBearingAndDist(p1, p2);
+    
+    const s1 = toScreenFunc(p1.x, p1.y);
+    const s2 = toScreenFunc(p2.x, p2.y);
+    const midX = (s1.x + s2.x) / 2;
+    const midY = (s1.y + s2.y) / 2;
+    
+    ctx.save();
+    ctx.translate(midX, midY);
+    
+    // Align text to line
+    const dy = s2.y - s1.y;
+    const dx = s2.x - s1.x;
+    let rotation = Math.atan2(dy, dx);
+    if (Math.abs(rotation) > Math.PI / 2) rotation += Math.PI;
+    
+    ctx.rotate(rotation);
+    ctx.fillStyle = "#00FFFF"; // Cyan
+    ctx.font = "11px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom"; 
+    ctx.fillText(data.text, 0, -3); 
+    ctx.restore();
+}
+
+// ==========================================
+// MAIN RENDER ENGINE
+// ==========================================
+
+function render() {
+    // 1. SETUP COLORS
+    const isLight = document.body.getAttribute('data-theme') === 'light';
+    const bgColor = isLight ? '#f1f5f9' : '#0f172a'; 
+    const gridColor = isLight ? '#cbd5e1' : '#1e293b'; 
+    const axisColor = isLight ? '#94a3b8' : '#334155';
+    
+    const finalBg = paperMode ? '#ffffff' : bgColor;
+    const finalGrid = paperMode ? '#e0e0e0' : gridColor;
+    const finalAxis = paperMode ? '#888888' : axisColor;
+
+    // Clear Screen
+    ctx.fillStyle = finalBg; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Update Zoom Box safely
+    if (typeof inputScale !== 'undefined' && inputScale && document.activeElement !== inputScale) {
+        inputScale.value = camera.zoom.toFixed(1);
+    }
+    
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    
+    // Helper: World to Screen
+    const toScreen = (x, y) => ({
+        x: (x - camera.x) * camera.zoom + cx,
+        y: (camera.y - y) * camera.zoom + cy 
+    });
+
+    // 2. DRAW THE GRID
+    const gridSize = 100 * camera.zoom; 
+    const offsetX = (camera.x * camera.zoom) % gridSize;
+    const offsetY = (camera.y * camera.zoom) % gridSize;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = finalGrid;
+    ctx.lineWidth = 0.5;
+
+    for (let x = -offsetX; x < canvas.width; x += gridSize) {
+        ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+    }
+    for (let y = offsetY; y < canvas.height; y += gridSize) {
+        ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+    }
+    ctx.stroke();
+
+    // Origin
+    const origin = toScreen(0,0);
+    ctx.strokeStyle = finalAxis; 
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(origin.x - 10, origin.y); ctx.lineTo(origin.x + 10, origin.y);
+    ctx.moveTo(origin.x, origin.y - 10); ctx.lineTo(origin.x, origin.y + 10);
+    ctx.stroke();
+
+    // 3. DRAW HISTORY
+    history.forEach(strokeObj => {
+        const points = strokeObj.points || [];
+        if (points.length < 2) return;
+        
+        let strokeColor = strokeObj.color || '#f3e2a0';
+        let strokeWidth = strokeObj.width || 2;
+
+        if (paperMode) {
+             if (strokeColor.toLowerCase().includes('f3e2a0') || strokeColor.toLowerCase() === '#ffffff') {
+                 strokeColor = '#000000';
+             }
+        }
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath(); // PREVENTS CRASH
+        const start = toScreen(points[0].x, points[0].y);
+        ctx.moveTo(start.x, start.y);
+        
+        for (let i = 1; i < points.length; i++) {
+            const pt = toScreen(points[i].x, points[i].y);
+            ctx.lineTo(pt.x, pt.y);
+        }
+
+        // Fill if closed
+        const first = points[0];
+        const last = points[points.length - 1];
+        const isClosed = Math.abs(first.x - last.x) < 0.01 && Math.abs(first.y - last.y) < 0.01;
+        
+        if (isClosed && typeof showFill !== 'undefined' && showFill) {
+            ctx.fillStyle = paperMode ? 'rgba(0,0,0,0.05)' : 'rgba(243, 226, 160, 0.15)'; 
+            ctx.fill();
+        }
+        ctx.stroke();
+
+        // Labels
+        if (strokeObj.hasLabel && !paperMode) {
+            for (let i = 0; i < points.length - 1; i++) {
+                drawSmartLabel(ctx, points[i], points[i+1], toScreen);
+            }
+        }
+    });
+
+    // 4. DRAW CURRENT STROKE
+    if (currentStroke.points.length > 0) {
+        ctx.strokeStyle = inputColor.value;
+        ctx.lineWidth = parseInt(inputWidth.value);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath();
+        const start = toScreen(currentStroke.points[0].x, currentStroke.points[0].y);
+        ctx.moveTo(start.x, start.y);
+        
+        for (let i = 1; i < currentStroke.points.length; i++) {
+            const pt = toScreen(currentStroke.points[i].x, currentStroke.points[i].y);
+            ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+    }
+}
+
+// ==========================================
+// APP INITIALIZATION
+// ==========================================
+
+function resize() {
+    canvas.width = canvasContainer.clientWidth;
+    canvas.height = canvasContainer.clientHeight;
+    render();
+}
+
+window.addEventListener('resize', resize);
+resize(); // Start the app
+
 // INITIAL DRAW
-resize();
+//resize();
