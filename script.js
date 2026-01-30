@@ -996,6 +996,37 @@ if(fileInput) fileInput.onchange = (e) => {
     };
     
     reader.readAsText(file);
+// --- HELPER: DRAW THE GRID ---
+// Paste this at the VERY BOTTOM of script.js
+function drawGrid(ctx, camera, cx, cy, width, height, gridColor, axisColor) {
+    const zoom = camera.zoom;
+    const gridSize = 100 * zoom; // Grid lines every 100 units
+    
+    // Calculate offset so grid moves when you pan
+    const offsetX = (camera.x * zoom) % gridSize;
+    const offsetY = (camera.y * zoom) % gridSize;
+    
+    ctx.beginPath(); // Start fresh
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 0.5; // Thin lines
+
+    // Vertical Lines
+    for (let x = -offsetX; x < width; x += gridSize) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+    }
+    
+    // Horizontal Lines
+    for (let y = offsetY; y < height; y += gridSize) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+    }
+    
+    ctx.stroke(); // Draw everything
+}
+
+    
+    
     // Clear input so you can load the same file again if needed
     fileInput.value = ''; 
 };
