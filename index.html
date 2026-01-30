@@ -14,116 +14,137 @@
       
       <div class="card">
         <strong>Job Management</strong>
-        <div style="display: flex; gap: 5px; margin-top: 5px;">
-            <button id="btn-reset" class="reset-btn" style="background: #444; border: 1px solid #666;">New Job</button>
-            <button id="btn-recenter" class="reset-btn" style="background: #444; border: 1px solid #666;">Find Pen</button>
+        <div class="row-grid">
+            <button id="btn-reset" class="reset-btn" style="background: #444;">New Job</button>
+            <button id="btn-recenter" class="reset-btn" style="background: #444;">Find Pen</button>
         </div>
-        <div style="display: flex; gap: 5px; margin-top: 5px;">
-            <button id="btn-save" class="action-btn" style="background: #27ae60; margin:0; font-size:0.8rem;">SAVE</button>
-            <button id="btn-load" class="action-btn" style="background: #8e44ad; margin:0; font-size:0.8rem;">LOAD</button>
+        <div class="row-grid">
+            <button id="btn-save" class="action-btn" style="background: #27ae60; margin:0;">SAVE</button>
+            <button id="btn-load" class="action-btn" style="background: #8e44ad; margin:0;">LOAD</button>
             <input type="file" id="file-input" accept=".json" style="display: none;">
         </div>
-        <div style="display: flex; gap: 5px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
-            <button id="btn-png" class="action-btn" style="background: #2980b9; margin:0; font-size:0.75rem;">IMG</button>
-            <button id="btn-pdf" class="action-btn" style="background: #c0392b; margin:0; font-size:0.75rem;">PDF</button>
+        <div class="row-grid" style="margin-bottom:0;">
+            <button id="btn-png" class="action-btn" style="background: #2980b9; margin:0;">IMG Export</button>
+            <button id="btn-pdf" class="action-btn" style="background: #c0392b; margin:0;">PDF Export</button>
         </div>
       </div>
 
       <div class="card">
         <strong>Drafting Styles</strong>
-        <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
-            <label style="font-size:0.8rem; width:40px;">Color:</label>
-            <input type="color" id="input-color" value="#f3e2a0" style="height:30px; padding:0; border:none; cursor:pointer;">
+        <div class="input-group">
+            <label class="label-text">Color:</label>
+            <input type="color" id="input-color" value="#f3e2a0" style="height:30px; cursor:pointer; padding:0; border:none;">
         </div>
-        <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
-            <label style="font-size:0.8rem; width:40px;">Width:</label>
-            <input type="number" id="input-width" value="2" min="1" max="20" style="width:50px;">
+        <div class="input-group">
+            <label class="label-text">Width:</label>
+            <input type="number" id="input-width" value="2" min="1" max="20">
             <span style="font-size:0.7rem; color:#aaa;">px</span>
         </div>
       </div>
 
       <div class="card">
         <strong>View & Modify Tools</strong>
-        <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
-            <button id="btn-zoom-in" class="reset-btn" style="font-weight:bold; width:30px;">+</button>
-            <button id="btn-zoom-out" class="reset-btn" style="font-weight:bold; width:30px;">-</button>
-            <button id="btn-fit" class="action-btn" style="background:#555; padding:5px; font-size:0.7rem; margin:0;">Fit</button>
-            <button id="btn-paper-mode" class="action-btn" style="background:#eee; color:#000; padding:5px; font-size:0.7rem; margin:0;">Paper</button>
-        </div>
-        <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
-             <label style="font-size:0.75rem; color:#aaa;">Zoom Lvl:</label>
-             <input type="number" id="input-scale" value="5" step="1" style="width: 50px;">
+        
+        <div class="row-grid">
+            <button id="btn-fit" class="action-btn" style="background:#555; margin:0;">Fit Screen</button>
+            <button id="btn-paper-mode" class="action-btn" style="background:#eee; color:#000; margin:0;">Paper Mode</button>
         </div>
         
-        <hr style="border:0; border-top:1px solid #444; margin:8px 0;">
+        <div class="row-grid">
+             <button id="btn-zoom-in" class="reset-btn" style="font-weight:bold; font-size:1.2rem;">+</button>
+             <button id="btn-zoom-out" class="reset-btn" style="font-weight:bold; font-size:1.2rem;">-</button>
+        </div>
+
+        <div class="input-group">
+             <label class="label-text">Zoom:</label>
+             <input type="number" id="input-scale" value="5" step="1">
+        </div>
         
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
-            <label style="font-size:0.8rem;">Offset Dist:</label>
-            <input type="number" id="input-offset-dist" value="10" placeholder="Feet">
+        <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+        
+        <div class="row-grid">
+            <button id="btn-offset-left" class="reset-btn">Offset Left</button>
+            <button id="btn-offset-right" class="reset-btn">Offset Right</button>
         </div>
-        <div style="display:flex; gap:5px;">
-            <button id="btn-offset-left" class="reset-btn" style="font-size:0.75rem;">Off Left</button>
-            <button id="btn-offset-right" class="reset-btn" style="font-size:0.75rem;">Off Right</button>
+        
+        <div class="input-group">
+            <label class="label-text">Dist:</label>
+            <input type="number" id="input-offset-dist" value="10">
         </div>
-        <button id="btn-fillet" class="action-btn" style="background: #e67e22; margin-top:5px; font-size:0.8rem;">JOIN / FILLET (Last 2)</button>
+        
+        <button id="btn-fillet" class="action-btn" style="background: #e67e22; width:100%; margin-top:5px;">JOIN / FILLET (Last 2)</button>
       </div>
 
       <div class="card">
         <strong>Target / Pen Control</strong>
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
-            <label style="width: 20px; text-align: right; color: #a3956a;">E:</label>
+        
+        <div class="input-group">
+            <label class="label-text">East:</label>
             <input type="number" id="input-x" placeholder="0.00" value="0.00">
         </div>
-        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
-            <label style="width: 20px; text-align: right; color: #a3956a;">N:</label>
+        <div class="input-group">
+            <label class="label-text">North:</label>
             <input type="number" id="input-y" placeholder="0.00" value="0.00">
         </div>
         
-        <div style="display:flex; gap:5px; margin-bottom:5px;">
+        <div class="row-grid">
             <button id="btn-go" class="action-btn" style="margin:0;">DRAW TO</button>
             <button id="btn-jump" class="action-btn" style="background: #555; margin:0;">JUMP TO</button>
         </div>
         
-        <div style="margin-top:5px; font-size:0.7rem; color:#888; text-align:center;">
-            Radius from Origin: <span id="offset-display" style="color:#f3e2a0">0.00'</span>
+        <div style="margin-top:8px; font-size:0.7rem; color:#666; text-align:center; border-top:1px solid #333; padding-top:5px;">
+            Distance from Origin: <span id="offset-display" style="color:#f3e2a0">0.00'</span>
         </div>
       </div>
       
       <div class="card">
         <strong>Traverse Line</strong>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
-            <label style="font-size: 0.8rem; align-self: center;">Azimuth:</label>
+        
+        <div class="input-group">
+            <label class="label-text" style="width:60px;">Azimuth:</label>
             <input type="number" id="input-az" placeholder="0-360" value="0">
-            <label style="font-size: 0.8rem; align-self: center;">Dist:</label>
+        </div>
+        <div class="input-group">
+            <label class="label-text" style="width:60px;">Dist:</label>
             <input type="number" id="input-dist" placeholder="Feet" value="100">
         </div>
-        <div style="display:flex; gap:5px; margin-bottom:5px;">
-             <button id="btn-turn-left" class="reset-btn" style="font-size:0.7rem;">Turn Left</button>
-             <button id="btn-turn-right" class="reset-btn" style="font-size:0.7rem;">Turn Right</button>
+
+        <div class="row-grid">
+             <button id="btn-turn-left" class="reset-btn">Turn Left</button>
+             <button id="btn-turn-right" class="reset-btn">Turn Right</button>
         </div>
-        <button id="btn-traverse" class="action-btn" style="background: #9b59b6; color: #fff;">STAKE LINE</button>
+        
+        <button id="btn-traverse" class="action-btn" style="background: #9b59b6; color: #fff; width:100%;">STAKE LINE</button>
       </div>
 
       <div class="card">
         <strong>Curve Staker</strong>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
-            <label style="font-size: 0.8rem; align-self: center;">Radius:</label>
+        
+        <div class="input-group">
+            <label class="label-text" style="width:60px;">Radius:</label>
             <input type="number" id="curve-radius" value="15">
-            <label style="font-size: 0.8rem; align-self: center;">Facing:</label>
-            <select id="curve-facing" style="background:#111; color:#fff; border:1px solid #555;">
+        </div>
+        
+        <div class="input-group">
+            <label class="label-text" style="width:60px;">Facing:</label>
+            <select id="curve-facing">
                 <option value="Tangent">Tangent (Auto)</option>
                 <option value="N">North</option>
                 <option value="S">South</option>
                 <option value="E">East</option>
                 <option value="W">West</option>
             </select>
-            <label style="font-size: 0.8rem; align-self: center;">Turn:</label>
-            <select id="curve-turn" style="background:#111; color:#fff; border:1px solid #555;">
+        </div>
+        
+        <div class="input-group">
+            <label class="label-text" style="width:60px;">Turn:</label>
+            <select id="curve-turn">
                 <option value="Left">Left</option>
                 <option value="Right">Right</option>
             </select>
         </div>
-        <button id="btn-curve" class="action-btn" style="background: #33d9b2; color: #000;">STAKE CURVE</button>
+        
+        <button id="btn-curve" class="action-btn" style="background: #33d9b2; color: #000; width:100%;">STAKE CURVE</button>
       </div>
 
       <div class="card">
