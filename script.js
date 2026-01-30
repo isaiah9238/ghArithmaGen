@@ -26,6 +26,7 @@ const btnReset = document.getElementById('btn-reset');
 const btnRecenter = document.getElementById('btn-recenter');
 const btnUndo = document.getElementById('btn-undo');
 const btnClose = document.getElementById('btn-close');
+const inputAutoLabel = document.getElementById('input-auto-label');
 
 // Drafting Styles
 const inputColor = document.getElementById('input-color');
@@ -117,88 +118,123 @@ currentStroke.width = parseInt(inputWidth.value);
 currentStroke.points.push({ ...pen });
 
 function render() {
-    // 1. Determine Colors based on CSS Variables
-    // We cheat a little by checking the body attribute
+    // --- 1. SETUP COLORS (Theme Support) ---
     const isLight = document.body.getAttribute('data-theme') === 'light';
     
-    const bgColor = isLight ? '#f1f5f9' : '#0f172a'; // Match CSS --bg-app
-    const gridColor = isLight ? '#cbd5e1' : '#1e293b'; // Match CSS --border
-    const axisColor = isLight ? '#94a3b8' : '#334155';
+    // Define Palette
+    const themeBg = isLight ? '#f1f5f9' : '#0f172a'; 
+    const themeGrid = isLight ? '#cbd5e1' : '#1e293b'; 
+    const themeAxis = isLight ? '#94a3b8' : '#334155';
     
-    // Check if we are in specific "Paper Mode" (which overrides everything)
-    const finalBg = paperMode ? '#ffffff' : bgColor;
-    const finalGrid = paperMode ? '#e0e0e0' : gridColor;
-    const finalAxis = paperMode ? '#888' : axisColor;
+    // Paper Mode Overrides
+    const bgColor = paperMode ? '#ffffff' : themeBg;
+    const gridColor = paperMode ? '#e0e0e0' : themeGrid;
+    const axisColor = paperMode ? '#888888' : themeAxis;
 
-    ctx.fillStyle = finalBg; 
+    // Clear Screen
+    ctx.fillStyle = bgColor; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    if (inputScale) inputScale.value = camera.zoom.toFixed(1);
+    // Update Zoom Box if it exists
+    if (typeof inputScale !== 'undefined' && inputScale) {
+        // Only update if not currently being typed in (optional safety)
+        if (document.activeElement !== inputScale) {
+            inputScale.value = camera.zoom.toFixed(1);
+        }
+    }
     
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     
+    // Helper: Convert World to Screen
     const toScreen = (x, y) => ({
         x: (x - camera.x) * camera.zoom + cx,
         y: (camera.y - y) * camera.zoom + cy 
     });
 
-    // A. DRAW GRID
-    drawGrid(ctx, camera, cx, cy, canvas.width, canvas.height, gridColor, axisColor);
+    // --- 2. DRAW GRID & ORIGIN ---
+    // (Assuming drawGrid function exists in your code)
+    if (typeof drawGrid === 'function') {
+        drawGrid(ctx, camera, cx, cy, canvas.width, canvas.height, gridColor, axisColor);
+    }
 
-    // B. DRAW ORIGIN
+    // Draw Origin Crosshair
     const origin = toScreen(0,0);
-    ctx.strokeStyle = axisColor; ctx.lineWidth = 1;
+    ctx.strokeStyle = axisColor; 
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(origin.x - 10, origin.y); ctx.lineTo(origin.x + 10, origin.y);
     ctx.moveTo(origin.x, origin.y - 10); ctx.lineTo(origin.x, origin.y + 10);
     ctx.stroke();
 
-    // C. DRAW SKETCH
-    // We combine history and the current stroke for the loop
-    const allStrokes = [...history, currentStroke];
-
-    allStrokes.forEach(strokeObj => {
-        // Handle legacy data (if any) or new object structure
-        const points = strokeObj.points || strokeObj; // Fallback if simple array
+    // --- 3. DRAW SAVED HISTORY ---
+    history.forEach(strokeObj => {
+        const points = strokeObj.points || [];
         if (points.length < 2) return;
         
-        let strokeColor = strokeObj.color || defaultLineColor;
+        let strokeColor = strokeObj.color || '#f3e2a0';
         let strokeWidth = strokeObj.width || 2;
 
-        // If in Paper Mode, invert Gold to Black for high contrast
+        // Paper Mode: Force light colors to black for visibility
         if (paperMode) {
-            // Simple inversion logic: if it looks like Gold/White, make it Black
-            if (strokeColor.toLowerCase().includes('f3e2a0') || strokeColor.toLowerCase() === '#ffffff') {
-                strokeColor = '#000000';
-            }
+             if (strokeColor.toLowerCase().includes('f3e2a0') || strokeColor.toLowerCase() === '#ffffff') {
+                 strokeColor = '#000000';
+             }
         }
 
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = strokeWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         
-        ctx.beginPath();
+        // A. Draw The Line
+        ctx.beginPath(); // <--- PREVENTS CRASH
         const start = toScreen(points[0].x, points[0].y);
         ctx.moveTo(start.x, start.y);
+        
         for (let i = 1; i < points.length; i++) {
             const pt = toScreen(points[i].x, points[i].y);
             ctx.lineTo(pt.x, pt.y);
         }
 
-        // Check Closure
+        // Handle Fill (if closed loop)
         const first = points[0];
         const last = points[points.length - 1];
-        const isClosed = Math.abs(first.x - last.x) < 0.001 && Math.abs(first.y - last.y) < 0.001;
+        const isClosed = Math.abs(first.x - last.x) < 0.01 && Math.abs(first.y - last.y) < 0.01;
+        
+        if (isClosed && typeof showFill !== 'undefined' && showFill) {
+            ctx.fillStyle = paperMode ? 'rgba(0,0,0,0.05)' : 'rgba(243, 226, 160, 0.15)'; 
+            ctx.fill();
+        }
+        
+        ctx.stroke(); // Draw the ink
 
-        if (isClosed) {
-            if (showFill) {
-                // Fill color logic
-                ctx.fillStyle = paperMode ? 'rgba(0,0,0,0.05)' : 'rgba(243, 226, 160, 0.15)'; 
-                ctx.fill();
+        // B. Draw Labels (NEW)
+        if (strokeObj.hasLabel && !paperMode) {
+            for (let i = 0; i < points.length - 1; i++) {
+                drawSmartLabel(ctx, points[i], points[i+1], toScreen);
             }
         }
-        ctx.stroke();
     });
+
+    // --- 4. DRAW CURRENT STROKE (The Ghost Line) ---
+    if (currentStroke.points.length > 0) {
+        ctx.strokeStyle = inputColor.value;
+        ctx.lineWidth = parseInt(inputWidth.value);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath(); // <--- PREVENTS CRASH
+        const start = toScreen(currentStroke.points[0].x, currentStroke.points[0].y);
+        ctx.moveTo(start.x, start.y);
+        
+        for (let i = 1; i < currentStroke.points.length; i++) {
+            const pt = toScreen(currentStroke.points[i].x, currentStroke.points[i].y);
+            ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+    }
+}
 
     // D. DRAW SNAP CURSOR
     if (snap.active) {
@@ -309,11 +345,12 @@ function updateLiveArea() {
 // Helper: Push current stroke to history and start new one
 function saveStroke() {
     if (currentStroke.points.length > 0) {
-        // Save copy of points and current styles
         history.push({
             points: [...currentStroke.points],
             color: currentStroke.color,
-            width: currentStroke.width
+            width: currentStroke.width,
+            // NEW: Remember if we wanted labels for this specific line
+            hasLabel: inputAutoLabel ? inputAutoLabel.checked : false
         });
     }
     // Start fresh
@@ -859,6 +896,72 @@ if(fileInput) fileInput.onchange = (e) => {
                     parcelListBody.appendChild(row);
                 });
             }
+
+            // --- LABEL MATH HELPERS ---
+
+            function getBearingAndDist(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+    
+            // Calculate Azimuth (0-360)
+            let az = Math.atan2(dx, dy) * (180 / Math.PI);
+            if (az < 0) az += 360;
+    
+            // Convert to Quadrant Bearing (e.g., N 45° E)
+            let bearing = "";
+            let angle = 0;
+    
+            if (az >= 0 && az < 90) {
+                bearing = "N " + az.toFixed(1) + "° E";
+            } else if (az >= 90 && az < 180) {
+                angle = 180 - az;
+                bearing = "S " + angle.toFixed(1) + "° E";
+            } else if (az >= 180 && az < 270) {
+                angle = az - 180;
+                bearing = "S " + angle.toFixed(1) + "° W";
+            } else {
+                angle = 360 - az;
+                bearing = "N " + angle.toFixed(1) + "° W";
+            }
+    
+            return { text: `${bearing}  ${dist.toFixed(2)}'`, angle: az };
+        }
+
+        function drawSmartLabel(ctx, p1, p2, toScreenFunc) {
+            const data = getBearingAndDist(p1, p2);
+    
+            // Find Midpoint in SCREEN coords
+            const s1 = toScreenFunc(p1.x, p1.y);
+            const s2 = toScreenFunc(p2.x, p2.y);
+            const midX = (s1.x + s2.x) / 2;
+            const midY = (s1.y + s2.y) / 2;
+    
+            ctx.save();
+            ctx.translate(midX, midY);
+    
+            // Rotate text to align with line
+            // Math.atan2(dy, dx) gives rotation in radians for canvas
+            const dy = s2.y - s1.y;
+            const dx = s2.x - s1.x;
+            let rotation = Math.atan2(dy, dx);
+            
+            // "Heads Up" Rule: If text is upside down, flip it 180
+            if (Math.abs(rotation) > Math.PI / 2) {
+                rotation += Math.PI;
+            }
+    
+            ctx.rotate(rotation);
+    
+            // Draw Text (Cyan, slightly above line)
+            ctx.fillStyle = "#00FFFF"; // Cyan
+            ctx.font = "11px monospace";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom"; // Sits on top of the line
+            ctx.fillText(data.text, 0, -3); // -3px padding
+    
+            ctx.restore();
+        }
 
             // Reset current pen
             currentStroke.points = [];
