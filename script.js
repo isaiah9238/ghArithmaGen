@@ -1,3 +1,5 @@
+script.js (The Engine)
+
 // ==========================================
 // 1. SETUP
 // ==========================================
@@ -460,13 +462,4 @@ if(btnFit) btnFit.onclick = () => {
     if (history.length === 0 && currentStroke.length <= 1) { camera = { x: 0, y: 0, zoom: 5 }; render(); return; }
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     [...history, currentStroke].forEach(stroke => stroke.forEach(pt => { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; }));
-    const centerX = (minX + maxX) / 2; const centerY = (minY + maxY) / 2;
-    const width = maxX - minX; const height = maxY - minY;
-    const zoomX = canvas.width / (width * 1.2); const zoomY = canvas.height / (height * 1.2);
-    camera.x = centerX; camera.y = centerY; camera.zoom = Math.min(zoomX, zoomY, 50); render();
-};
-
-if(inputScale) inputScale.onchange = render;
-
-// INITIAL DRAW
-resize();
+    const centerX = (minX + maxX) / 2; const ce
