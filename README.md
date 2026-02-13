@@ -1,4 +1,5 @@
 # ArithmaGen Engine
+created by Gemini with my assistants.
 **Professional Mathematics & Engineering Visualizer**
 
 ### Project Overview
