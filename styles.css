@@ -1,200 +1,101 @@
-/* =========================================
-   THEME VARIABLES (Dark Mode Default)
-   ========================================= */
+styles.css (The Visuals)
+
 :root {
-    /* DEFAULT (DARK) COLORS */
-    --bg-app: #0f172a;       /* Deep Slate */
-    --bg-panel: #1e293b;     /* Lighter Slate */
-    --text-main: #f1f5f9;    /* Off-White */
-    --text-muted: #94a3b8;   /* Muted Blue-Grey */
-    --border: #334155;       /* Subtle Border */
-    
-    --btn-bg: #334155;       /* Button Neutral */
-    --btn-text: #e2e8f0;     /* Button Text */
-    --btn-hover: #475569;    /* Button Hover */
-    
-    --accent: #fbbf24;       /* Safety Amber (The "Active" Color) */
-    --accent-text: #0f172a;  /* Text on Amber (Dark for contrast) */
-    --danger: #ef4444;       /* Red for Delete/Reset */
+  --bg-color: #0f0f0f;
+  --panel-color: #1a1a1a;
+  --text-color: #dcdcdc;
+  --gold: #f3e2a0;
 }
 
-/* LIGHT MODE OVERRIDES */
-[data-theme="light"] {
-    --bg-app: #f1f5f9;       /* Light Grey */
-    --bg-panel: #ffffff;     /* Pure White */
-    --text-main: #0f172a;    /* Dark Slate */
-    --text-muted: #64748b;   /* Grey */
-    --border: #cbd5e1;       
-    
-    --btn-bg: #e2e8f0;       
-    --btn-text: #334155;     
-    --btn-hover: #cbd5e1;    
-    
-    --accent: #d97706;       /* Darker Amber for light background */
-    --accent-text: #ffffff;
-}
-
-/* =========================================
-   BASE STYLES
-   ========================================= */
 body {
-    margin: 0;
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    display: flex;
-    height: 100vh;
-    background-color: var(--bg-app);
-    color: var(--text-main);
-    overflow: hidden;
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: monospace; 
+  overflow: hidden;
 }
 
-/* =========================================
-   SIDEBAR & CARDS
-   ========================================= */
-#sidebar {
-    width: 320px;
-    background-color: var(--bg-app);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    gap: 10px;
-    overflow-y: auto;
+aside {
+  width: 210px;       
+  background: var(--panel-color);
+  border-right: 1px solid #333;
+  padding: 8px;       
+  display: flex;
+  flex-direction: column;
+  gap: 8px;           
+  z-index: 10;
+  overflow-y: auto;   
 }
 
-h1 {
-    font-size: 1.2rem;
-    text-align: center;
-    margin: 5px 0 10px 0;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 1px;
+aside h1 {
+  margin: 0 0 5px 0;  
+  font-size: 1.1rem;  
+  text-align: center;
+  color: var(--gold);
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
 }
 
 .card {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  background: #252525;
+  padding: 8px;       
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-size: 0.9rem;  
 }
 
-.card strong {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 5px;
-    letter-spacing: 0.5px;
+input, select {
+    background: #111;
+    border: 1px solid #555;
+    color: #fff;
+    padding: 5px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 5px;
 }
 
-/* =========================================
-   INPUTS & GRID LAYOUTS
-   ========================================= */
-.row-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.input-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.label-text {
-    width: 50px;
-    text-align: right;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-input[type="number"], 
-input[type="text"], 
-select {
-    flex: 1;
-    background-color: var(--bg-app);
-    border: 1px solid var(--border);
-    color: var(--text-main);
-    padding: 6px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    outline: none;
-}
-
-input:focus {
-    border-color: var(--accent);
-}
-
-/* =========================================
-   BUTTONS (UNIFIED)
-   ========================================= */
-button {
-    cursor: pointer;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    
-    /* Default State: Neutral Slate */
-    background-color: var(--btn-bg);
-    color: var(--btn-text);
-    border: 1px solid transparent;
-}
-
-button:hover {
-    background-color: var(--btn-hover);
-    transform: translateY(-1px);
-}
-
-button:active {
-    transform: translateY(1px);
-}
-
-/* PRIMARY ACTION (The "Go" Buttons) */
 .action-btn {
-    /* Still neutral by default, but maybe bold text */
-    font-weight: 700;
+    width: 100%;
+    background: #d99e33;
+    border: none;
+    padding: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+    border-radius: 4px;
 }
 
-/* ACTIVE STATE (Toggled On or Pressed) */
-button.active, 
-button:active {
-    background-color: var(--accent) !important;
-    color: var(--accent-text) !important;
-    border-color: var(--accent);
+.reset-btn {
+    width: 100%;
+    background: #444;
+    color: #fff;
+    border: 1px solid #666;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
 }
 
-/* SPECIAL: Reset/Danger Buttons */
-.reset-btn:hover {
-    border-color: var(--text-muted);
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* =========================================
-   CANVAS AREA
-   ========================================= */
 #canvas-container {
     flex-grow: 1;
     position: relative;
-    background-color: #000; /* Canvas handles its own BG, this is backup */
-    overflow: hidden;
+    cursor: crosshair;
+    user-select: none;
+    background-color: var(--bg-color);
 }
 
 canvas {
     display: block;
     width: 100%;
     height: 100%;
-    cursor: crosshair;
+    touch-action: none;
 }
 
-/* SCROLLBAR POLISH */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-app); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
